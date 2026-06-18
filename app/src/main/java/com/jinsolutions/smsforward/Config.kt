@@ -26,7 +26,7 @@ object Config {
 
     // ---- FIXED (not editable in the app) ----
     const val GATEWAY_URL = "https://wa.jinsolutions.in/send/message"
-    const val DEVICE_ID = "savebirdskandivali"
+    const val DEVICE_ID = "savebirdskandivali-admin"
     val GROUPS = listOf(
         "120363416877358281@g.us",
         "919664305350-1606905372@g.us"
