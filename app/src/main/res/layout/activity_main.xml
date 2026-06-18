@@ -147,6 +147,13 @@
             android:text="Save"
             android:layout_marginTop="8dp" />
 
+        <Button
+            android:id="@+id/testBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Send Test message now"
+            android:layout_marginTop="8dp" />
+
         <TextView
             android:id="@+id/status"
             android:layout_width="match_parent"
@@ -154,6 +161,43 @@
             android:fontFamily="monospace"
             android:textSize="13sp"
             android:paddingTop="20dp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Activity log (newest first)"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:paddingTop="20dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/refreshLogBtn"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Refresh" />
+
+            <Button
+                android:id="@+id/clearLogBtn"
+                android:layout_width="0dp"
+                android:layout_weight="1"
+                android:layout_height="wrap_content"
+                android:text="Clear" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/logView"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="monospace"
+            android:textSize="12sp"
+            android:paddingTop="8dp"
+            android:paddingBottom="24dp" />
 
     </LinearLayout>
 </ScrollView>
