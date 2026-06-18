@@ -80,6 +80,9 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.clearLogBtn).setOnClickListener { EventLog.clear(this); updateLog() }
 
         if (!hasAllPermissions()) requestPermissions() else refreshSims()
+
+        // Make sure the service is running if forwarding is already enabled.
+        if (cfg.enabled) ForwardService.start(this)
     }
 
     override fun onResume() {
@@ -171,6 +174,10 @@ class MainActivity : AppCompatActivity() {
         val kws = keywords().ifEmpty { Config.DEFAULT_KEYWORDS }
         Config.save(this, enabledSwitch.isChecked, selectedSubId(), selectedSimLabel(), kws)
         keywordsInput.setText(kws.joinToString(","))
+
+        // Start/stop the always-on background service.
+        if (enabledSwitch.isChecked) ForwardService.start(this) else ForwardService.stop(this)
+
         Toast.makeText(this, "Saved.", Toast.LENGTH_SHORT).show()
         updateStatus()
     }

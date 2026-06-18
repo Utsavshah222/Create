@@ -34,7 +34,10 @@ object Config {
     // Token comes from the build secret (BuildConfig), never from source.
     val AUTH: String get() = BuildConfig.GATEWAY_AUTH
 
-    val DEFAULT_KEYWORDS = listOf("debited", "credited")
+    // Covers common Indian bank wording for debit/credit (Kotak says "Sent"/"Received").
+    val DEFAULT_KEYWORDS = listOf(
+        "debited", "credited", "sent", "received", "debit", "credit", "spent", "withdrawn"
+    )
 
     private fun prefs(c: Context) = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 

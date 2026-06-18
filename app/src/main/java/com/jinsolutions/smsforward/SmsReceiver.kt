@@ -58,6 +58,16 @@ class SmsReceiver : BroadcastReceiver() {
             return
         }
 
+        // Guard against the same SMS being processed twice in a short window.
+        val sig = (sender + "|" + body).hashCode()
+        val dp = context.getSharedPreferences("dedup", Context.MODE_PRIVATE)
+        val now = System.currentTimeMillis()
+        if (sig == dp.getInt("sig", 0) && now - dp.getLong("time", 0L) < 15_000) {
+            EventLog.add(context, "SKIP — duplicate within 15s")
+            return
+        }
+        dp.edit().putInt("sig", sig).putLong("time", now).apply()
+
         EventLog.add(context, "MATCH — queueing send to ${cfg.groups.size} group(s)")
 
         val constraints = Constraints.Builder()
