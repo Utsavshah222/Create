@@ -2,6 +2,7 @@ package com.jinsolutions.smsforward
 
 import android.Manifest
 import android.annotation.SuppressLint
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -24,15 +25,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.work.ExistingPeriodicWorkPolicy
-import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
-import androidx.work.workDataOf
 import java.util.concurrent.TimeUnit
 
 /**
- * Setup screen. Everything except the keyword list, the SIM and the on/off switch is fixed
- * and baked into the app. A "Send Test" button and an on-screen log let you verify it works.
+ * Setup screen. Only the keyword list, the SIM and the on/off switch are editable; everything
+ * else is fixed and baked into the app. A "Send Test" button and a live log let you verify it.
  */
 class MainActivity : AppCompatActivity() {
 
@@ -75,6 +74,7 @@ class MainActivity : AppCompatActivity() {
         destInfo.text = buildString {
             append("Gateway: ${Config.GATEWAY_URL}\n")
             append("Device : ${Config.DEVICE_ID}\n")
+            append("Delay  : 2s between each message (anti-ban)\n")
             append("Groups :\n")
             Config.GROUPS.forEach { append("  • $it\n") }
         }
@@ -88,7 +88,6 @@ class MainActivity : AppCompatActivity() {
 
         if (!hasAllPermissions()) requestPermissions() else refreshSims()
 
-        // Make sure the service is running if forwarding is already enabled.
         if (cfg.enabled) ForwardService.start(this)
     }
 
@@ -203,7 +202,6 @@ class MainActivity : AppCompatActivity() {
         Config.save(this, enabledSwitch.isChecked, selectedSubId(), selectedSimLabel(), kws)
         keywordsInput.setText(kws.joinToString(","))
 
-        // Start/stop the always-on background service + watchdog.
         if (enabledSwitch.isChecked) {
             ForwardService.start(this)
             val work = PeriodicWorkRequestBuilder<WatchdogWorker>(15, TimeUnit.MINUTES).build()
@@ -218,7 +216,7 @@ class MainActivity : AppCompatActivity() {
         updateStatus()
     }
 
-    /** Sends a test message right now to every group, using the fixed built-in values. */
+    /** Queues a test message to every group; the service sends them 2s apart. */
     private fun sendTest() {
         if (Config.AUTH.isBlank()) {
             Toast.makeText(this,
@@ -228,22 +226,15 @@ class MainActivity : AppCompatActivity() {
             updateLog()
             return
         }
-        EventLog.add(this, "TEST pressed — sending to ${Config.GROUPS.size} group(s)")
         for (group in Config.GROUPS) {
-            val data = workDataOf(
-                SendWorker.K_URL to Config.GATEWAY_URL,
-                SendWorker.K_AUTH to Config.AUTH,
-                SendWorker.K_DEVICE to Config.DEVICE_ID,
-                SendWorker.K_PHONE to group,
-                SendWorker.K_MESSAGE to "Test from SMS to WhatsApp app. If you see this, sending works."
-            )
-            WorkManager.getInstance(this)
-                .enqueue(OneTimeWorkRequestBuilder<SendWorker>().setInputData(data).build())
+            QueueStore.add(this, group, "Test from SMS to WhatsApp app. If you see this, sending works.")
         }
+        EventLog.add(this, "TEST queued ${Config.GROUPS.size} message(s)")
+        ForwardService.start(this)
         Toast.makeText(this, "Test queued. Watch the log below.", Toast.LENGTH_SHORT).show()
         val h = Handler(Looper.getMainLooper())
-        h.postDelayed({ updateLog() }, 2000)
-        h.postDelayed({ updateLog() }, 5000)
+        h.postDelayed({ updateLog() }, 2500)
+        h.postDelayed({ updateLog() }, 6000)
     }
 
     private fun updateStatus() {
@@ -253,7 +244,8 @@ class MainActivity : AppCompatActivity() {
             append("Permissions: ${if (hasAllPermissions()) "granted" else "MISSING"}\n")
             append("Token built in: ${if (Config.AUTH.isBlank()) "NO — add GATEWAY_AUTH secret" else "yes"}\n")
             append("Watching: ${if (cfg.simLabel.isBlank()) "Any SIM" else cfg.simLabel}\n")
-            append("Keywords: ${cfg.keywords.joinToString(", ")}")
+            append("Keywords: ${cfg.keywords.joinToString(", ")}\n")
+            append("In queue: ${QueueStore.size(this@MainActivity)}")
         }
     }
 

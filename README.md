@@ -91,10 +91,15 @@ settings.gradle.kts, build.gradle.kts, gradle.properties
 app/build.gradle.kts
 app/src/main/AndroidManifest.xml
 app/src/main/java/com/jinsolutions/smsforward/
-    MainActivity.kt    setup screen (SIM, permissions, groups)
-    Config.kt          on-device settings (SharedPreferences)
-    SmsReceiver.kt     background SMS receiver + filter
-    SendWorker.kt      POSTs to the gateway, with retry
+    MainActivity.kt    setup screen (SIM, permissions, keywords, test, log)
+    Config.kt          on-device settings; fixed values + build-time token
+    SmsReceiver.kt     background SMS receiver + filter -> adds to queue
+    ForwardService.kt  always-on foreground service; drains queue 1 msg / 2s
+    QueueStore.kt      persistent FIFO send queue
+    Sender.kt          single HTTP POST to the gateway
+    EventLog.kt        on-screen activity log
+    BootReceiver.kt    restarts the service after reboot
+    WatchdogWorker.kt  revives the service every ~15 min
 app/src/main/res/...   layout, strings, theme, launcher icon
 ```
 

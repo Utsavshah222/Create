@@ -4,20 +4,14 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.provider.Telephony
-import androidx.work.BackoffPolicy
-import androidx.work.Constraints
-import androidx.work.NetworkType
-import androidx.work.OneTimeWorkRequestBuilder
-import androidx.work.WorkManager
-import androidx.work.workDataOf
-import java.util.concurrent.TimeUnit
 
 /**
  * Fires for every incoming SMS, even when the app is closed (manifest-registered receiver;
  * SMS_RECEIVED is delivered to background apps by the system).
  *
- * Keeps only messages that (a) arrived on the SIM you selected and (b) contain one of your
- * keywords, then hands each one to WorkManager to POST to the gateway.
+ * It keeps only messages that (a) arrived on the SIM you selected and (b) contain one of your
+ * keywords, then ADDS each one to the queue. The foreground service sends them out, one every
+ * 2 seconds.
  */
 class SmsReceiver : BroadcastReceiver() {
 
@@ -68,26 +62,13 @@ class SmsReceiver : BroadcastReceiver() {
         }
         dp.edit().putInt("sig", sig).putLong("time", now).apply()
 
-        EventLog.add(context, "MATCH — queueing send to ${cfg.groups.size} group(s)")
-
-        val constraints = Constraints.Builder()
-            .setRequiredNetworkType(NetworkType.CONNECTED)
-            .build()
-
+        // Add one queued message per group; the service sends them 2 seconds apart.
         for (group in cfg.groups) {
-            val data = workDataOf(
-                SendWorker.K_URL to cfg.gatewayUrl,
-                SendWorker.K_AUTH to cfg.auth,
-                SendWorker.K_DEVICE to cfg.deviceId,
-                SendWorker.K_PHONE to group,
-                SendWorker.K_MESSAGE to body
-            )
-            val req = OneTimeWorkRequestBuilder<SendWorker>()
-                .setInputData(data)
-                .setConstraints(constraints)
-                .setBackoffCriteria(BackoffPolicy.EXPONENTIAL, 15, TimeUnit.SECONDS)
-                .build()
-            WorkManager.getInstance(context).enqueue(req)
+            QueueStore.add(context, group, body)
         }
+        EventLog.add(context, "QUEUED ${cfg.groups.size} message(s) — total waiting: ${QueueStore.size(context)}")
+
+        // Make sure the sender service is running so the queue gets drained.
+        ForwardService.start(context)
     }
 }
