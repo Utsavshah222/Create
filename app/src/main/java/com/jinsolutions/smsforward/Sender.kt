@@ -5,13 +5,20 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 /**
  * Performs one HTTP POST to the WhatsApp gateway.
  * Body:  {"phone":"<group-jid>","message":"<text>"}
- * Returns (success, humanReadableInfo).
+ *
+ * Returns an Outcome so the caller can tell apart:
+ *  - success            -> remove from queue
+ *  - networkError=true  -> internet down / unreachable -> KEEP and wait (never drop)
+ *  - networkError=false -> gateway answered with an error -> count attempts
  */
+data class Outcome(val success: Boolean, val networkError: Boolean, val info: String)
+
 object Sender {
 
     private val client = OkHttpClient.Builder()
@@ -19,8 +26,8 @@ object Sender {
         .readTimeout(20, TimeUnit.SECONDS)
         .build()
 
-    fun send(url: String, auth: String, device: String, phone: String, message: String): Pair<Boolean, String> {
-        if (auth.isBlank()) return false to "no token built in"
+    fun send(url: String, auth: String, device: String, phone: String, message: String): Outcome {
+        if (auth.isBlank()) return Outcome(false, false, "no token built in")
         return try {
             val json = JSONObject().put("phone", phone).put("message", message).toString()
             val req = Request.Builder()
@@ -33,10 +40,13 @@ object Sender {
                 .build()
             client.newCall(req).execute().use { resp ->
                 val body = resp.body?.string()?.take(180).orEmpty()
-                resp.isSuccessful to "HTTP ${resp.code} $body"
+                Outcome(resp.isSuccessful, false, "HTTP ${resp.code} $body")
             }
+        } catch (e: IOException) {
+            // No connectivity / timeout / DNS failure -> transient, keep and wait.
+            Outcome(false, true, "network: ${e.message}")
         } catch (e: Exception) {
-            false to "ERROR ${e.message}"
+            Outcome(false, true, "error: ${e.message}")
         }
     }
 }
