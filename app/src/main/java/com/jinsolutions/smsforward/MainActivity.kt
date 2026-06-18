@@ -25,21 +25,17 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 
 /**
- * One-screen setup: pick SIM, grant permissions, set groups/gateway, Save.
- * Plus a "Send Test" button and a live log so you can see exactly what happens.
- * Everything is stored on the device only.
+ * Setup screen. Everything except the keyword list, the SIM and the on/off switch is fixed
+ * and baked into the app. A "Send Test" button and an on-screen log let you verify it works.
  */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var simGroup: RadioGroup
     private lateinit var simHint: TextView
-    private lateinit var urlInput: EditText
-    private lateinit var authInput: EditText
-    private lateinit var deviceInput: EditText
-    private lateinit var groupsInput: EditText
     private lateinit var keywordsInput: EditText
     private lateinit var enabledSwitch: Switch
     private lateinit var status: TextView
+    private lateinit var destInfo: TextView
     private lateinit var logView: TextView
 
     private val basePerms = arrayOf(
@@ -61,30 +57,27 @@ class MainActivity : AppCompatActivity() {
 
         simGroup = findViewById(R.id.simGroup)
         simHint = findViewById(R.id.simHint)
-        urlInput = findViewById(R.id.urlInput)
-        authInput = findViewById(R.id.authInput)
-        deviceInput = findViewById(R.id.deviceInput)
-        groupsInput = findViewById(R.id.groupsInput)
         keywordsInput = findViewById(R.id.keywordsInput)
         enabledSwitch = findViewById(R.id.enabledSwitch)
         status = findViewById(R.id.status)
+        destInfo = findViewById(R.id.destInfo)
         logView = findViewById(R.id.logView)
 
         val cfg = Config.load(this)
-        urlInput.setText(cfg.gatewayUrl)
-        authInput.setText(cfg.auth)
-        deviceInput.setText(cfg.deviceId)
-        groupsInput.setText(cfg.groups.joinToString("\n"))
         keywordsInput.setText(cfg.keywords.joinToString(","))
         enabledSwitch.isChecked = cfg.enabled
+        destInfo.text = buildString {
+            append("Gateway: ${Config.GATEWAY_URL}\n")
+            append("Device : ${Config.DEVICE_ID}\n")
+            append("Groups :\n")
+            Config.GROUPS.forEach { append("  • $it\n") }
+        }
 
         findViewById<Button>(R.id.grantBtn).setOnClickListener { requestPermissions() }
         findViewById<Button>(R.id.saveBtn).setOnClickListener { save() }
         findViewById<Button>(R.id.testBtn).setOnClickListener { sendTest() }
         findViewById<Button>(R.id.refreshLogBtn).setOnClickListener { updateLog() }
-        findViewById<Button>(R.id.clearLogBtn).setOnClickListener {
-            EventLog.clear(this); updateLog()
-        }
+        findViewById<Button>(R.id.clearLogBtn).setOnClickListener { EventLog.clear(this); updateLog() }
 
         if (!hasAllPermissions()) requestPermissions() else refreshSims()
     }
@@ -166,8 +159,8 @@ class MainActivity : AppCompatActivity() {
         return findViewById<RadioButton>(id).text.toString()
     }
 
-    private fun currentGroups(): List<String> =
-        groupsInput.text.toString().split("\n").map { it.trim() }.filter { it.isNotEmpty() }
+    private fun keywords(): List<String> =
+        keywordsInput.text.toString().split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }
 
     private fun save() {
         if (enabledSwitch.isChecked && !hasAllPermissions()) {
@@ -175,52 +168,29 @@ class MainActivity : AppCompatActivity() {
             requestPermissions()
             return
         }
-        val groups = currentGroups()
-        val keywords = keywordsInput.text.toString()
-            .split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }
-
-        if (enabledSwitch.isChecked && groups.isEmpty()) {
-            Toast.makeText(this, "Add at least one WhatsApp group id.", Toast.LENGTH_LONG).show()
-            return
-        }
-        if (authInput.text.toString().isBlank()) {
-            Toast.makeText(this, "Tip: paste your Basic ... token, or sends will fail.", Toast.LENGTH_LONG).show()
-        }
-
-        Config.save(this, AppConfig(
-            enabled = enabledSwitch.isChecked,
-            subId = selectedSubId(),
-            simLabel = selectedSimLabel(),
-            gatewayUrl = urlInput.text.toString().trim(),
-            auth = authInput.text.toString().trim(),
-            deviceId = deviceInput.text.toString().trim(),
-            groups = groups,
-            keywords = keywords
-        ))
+        val kws = keywords().ifEmpty { Config.DEFAULT_KEYWORDS }
+        Config.save(this, enabledSwitch.isChecked, selectedSubId(), selectedSimLabel(), kws)
+        keywordsInput.setText(kws.joinToString(","))
         Toast.makeText(this, "Saved.", Toast.LENGTH_SHORT).show()
         updateStatus()
     }
 
-    /** Sends a test message right now to every group, using the values currently on screen. */
+    /** Sends a test message right now to every group, using the fixed built-in values. */
     private fun sendTest() {
-        val groups = currentGroups()
-        val url = urlInput.text.toString().trim()
-        val auth = authInput.text.toString().trim()
-        val device = deviceInput.text.toString().trim()
-
-        if (groups.isEmpty()) {
-            Toast.makeText(this, "Add a group id first.", Toast.LENGTH_LONG).show(); return
+        if (Config.AUTH.isBlank()) {
+            Toast.makeText(this,
+                "Token not built in. Add the GATEWAY_AUTH secret on GitHub and rebuild.",
+                Toast.LENGTH_LONG).show()
+            EventLog.add(this, "TEST blocked — token not built into this APK")
+            updateLog()
+            return
         }
-        if (auth.isBlank()) {
-            Toast.makeText(this, "Paste your Basic ... token first.", Toast.LENGTH_LONG).show(); return
-        }
-
-        EventLog.add(this, "TEST pressed — sending to ${groups.size} group(s)")
-        for (group in groups) {
+        EventLog.add(this, "TEST pressed — sending to ${Config.GROUPS.size} group(s)")
+        for (group in Config.GROUPS) {
             val data = workDataOf(
-                SendWorker.K_URL to url,
-                SendWorker.K_AUTH to auth,
-                SendWorker.K_DEVICE to device,
+                SendWorker.K_URL to Config.GATEWAY_URL,
+                SendWorker.K_AUTH to Config.AUTH,
+                SendWorker.K_DEVICE to Config.DEVICE_ID,
                 SendWorker.K_PHONE to group,
                 SendWorker.K_MESSAGE to "Test from SMS to WhatsApp app. If you see this, sending works."
             )
@@ -228,7 +198,6 @@ class MainActivity : AppCompatActivity() {
                 .enqueue(OneTimeWorkRequestBuilder<SendWorker>().setInputData(data).build())
         }
         Toast.makeText(this, "Test queued. Watch the log below.", Toast.LENGTH_SHORT).show()
-        // Refresh the log a few times so the HTTP result shows without leaving the screen.
         val h = Handler(Looper.getMainLooper())
         h.postDelayed({ updateLog() }, 2000)
         h.postDelayed({ updateLog() }, 5000)
@@ -239,10 +208,9 @@ class MainActivity : AppCompatActivity() {
         status.text = buildString {
             append(if (cfg.enabled) "● RUNNING\n" else "○ Disabled\n")
             append("Permissions: ${if (hasAllPermissions()) "granted" else "MISSING"}\n")
-            append("Token: ${if (cfg.auth.isBlank()) "NOT SET" else "set"}\n")
+            append("Token built in: ${if (Config.AUTH.isBlank()) "NO — add GATEWAY_AUTH secret" else "yes"}\n")
             append("Watching: ${if (cfg.simLabel.isBlank()) "Any SIM" else cfg.simLabel}\n")
-            append("Keywords: ${cfg.keywords.joinToString(", ")}\n")
-            append("Groups: ${cfg.groups.size}")
+            append("Keywords: ${cfg.keywords.joinToString(", ")}")
         }
     }
 

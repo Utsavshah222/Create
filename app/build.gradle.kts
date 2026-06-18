@@ -13,6 +13,15 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
+
+        // Token is injected at build time from the GitHub Actions secret GATEWAY_AUTH.
+        // It is never stored in source. Locally (no env var) it is just empty.
+        val gatewayAuth = System.getenv("GATEWAY_AUTH") ?: ""
+        buildConfigField("String", "GATEWAY_AUTH", "\"$gatewayAuth\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     buildTypes {

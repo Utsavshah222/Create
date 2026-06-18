@@ -3,38 +3,40 @@ package com.jinsolutions.smsforward
 import android.content.Context
 
 /**
- * All settings live ONLY on the device, in SharedPreferences. Nothing is stored on any server.
- * The setup screen (MainActivity) writes this; the background SMS receiver reads it.
+ * Fixed settings are baked into the app and cannot be changed in the UI.
+ * Only the keyword list, the chosen SIM, and the on/off switch are user-editable and saved
+ * on this device (SharedPreferences). Nothing is stored on any server.
+ *
+ * The Authorization token is NOT in the source code. It is injected at build time from the
+ * GitHub Actions secret GATEWAY_AUTH, so it never lives in git.
  */
 data class AppConfig(
     val enabled: Boolean,
-    val subId: Int,            // which SIM to watch (subscription id), -1 = any SIM
-    val simLabel: String,      // human label of the chosen SIM (for the UI only)
-    val gatewayUrl: String,    // WhatsApp gateway endpoint
-    val auth: String,          // Authorization header value (Basic ...)
-    val deviceId: String,      // x-device-id header value
-    val groups: List<String>,  // destination chat ids (group JIDs)
-    val keywords: List<String> // body must contain one of these to be forwarded
+    val subId: Int,            // which SIM to watch, -1 = any
+    val simLabel: String,
+    val gatewayUrl: String,
+    val auth: String,
+    val deviceId: String,
+    val groups: List<String>,
+    val keywords: List<String>
 )
 
 object Config {
     private const val PREFS = "cfg"
 
-    // ---- Defaults, pre-filled from the values you provided ----
-    const val DEFAULT_URL = "https://wa.jinsolutions.in/send/message"
-    // SECRET — intentionally left blank so it is never committed to git.
-    // Paste your "Basic ..." Authorization value once in the app's setup screen; it is
-    // then stored only on this device (SharedPreferences).
-    const val DEFAULT_AUTH = ""
-    const val DEFAULT_DEVICE_ID = "savebirdskandivali"
-    val DEFAULT_GROUPS = listOf(
+    // ---- FIXED (not editable in the app) ----
+    const val GATEWAY_URL = "https://wa.jinsolutions.in/send/message"
+    const val DEVICE_ID = "savebirdskandivali"
+    val GROUPS = listOf(
         "120363416877358281@g.us",
         "919664305350-1606905372@g.us"
     )
+    // Token comes from the build secret (BuildConfig), never from source.
+    val AUTH: String get() = BuildConfig.GATEWAY_AUTH
+
     val DEFAULT_KEYWORDS = listOf("debited", "credited")
 
-    private fun prefs(c: Context) =
-        c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    private fun prefs(c: Context) = c.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
     fun load(c: Context): AppConfig {
         val p = prefs(c)
@@ -42,29 +44,23 @@ object Config {
             enabled = p.getBoolean("enabled", false),
             subId = p.getInt("subId", -1),
             simLabel = p.getString("simLabel", "") ?: "",
-            gatewayUrl = p.getString("url", DEFAULT_URL) ?: DEFAULT_URL,
-            auth = p.getString("auth", DEFAULT_AUTH) ?: DEFAULT_AUTH,
-            deviceId = p.getString("deviceId", DEFAULT_DEVICE_ID) ?: DEFAULT_DEVICE_ID,
-            groups = splitLines(p.getString("groups", DEFAULT_GROUPS.joinToString("\n"))),
+            gatewayUrl = GATEWAY_URL,
+            auth = AUTH,
+            deviceId = DEVICE_ID,
+            groups = GROUPS,
             keywords = splitCsv(p.getString("keywords", DEFAULT_KEYWORDS.joinToString(",")))
         )
     }
 
-    fun save(c: Context, cfg: AppConfig) {
+    /** Only the editable bits are persisted. */
+    fun save(c: Context, enabled: Boolean, subId: Int, simLabel: String, keywords: List<String>) {
         prefs(c).edit()
-            .putBoolean("enabled", cfg.enabled)
-            .putInt("subId", cfg.subId)
-            .putString("simLabel", cfg.simLabel)
-            .putString("url", cfg.gatewayUrl.trim())
-            .putString("auth", cfg.auth.trim())
-            .putString("deviceId", cfg.deviceId.trim())
-            .putString("groups", cfg.groups.joinToString("\n"))
-            .putString("keywords", cfg.keywords.joinToString(","))
+            .putBoolean("enabled", enabled)
+            .putInt("subId", subId)
+            .putString("simLabel", simLabel)
+            .putString("keywords", keywords.joinToString(","))
             .apply()
     }
-
-    private fun splitLines(s: String?): List<String> =
-        s.orEmpty().split("\n").map { it.trim() }.filter { it.isNotEmpty() }
 
     private fun splitCsv(s: String?): List<String> =
         s.orEmpty().split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }

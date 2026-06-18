@@ -23,6 +23,8 @@ jobs:
           gradle-version: '8.9'
 
       - name: Build debug APK
+        env:
+          GATEWAY_AUTH: ${{ secrets.GATEWAY_AUTH }}
         run: gradle assembleDebug --no-daemon --stacktrace
 
       - name: Upload APK

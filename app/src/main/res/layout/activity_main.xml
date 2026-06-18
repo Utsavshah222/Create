@@ -1,151 +1,197 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:fillViewport="true">
+    android:fillViewport="true"
+    android:background="#F2F3F5">
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="20dp">
+        android:padding="16dp">
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="@string/app_name"
-            android:textSize="22sp"
-            android:textStyle="bold"
-            android:paddingBottom="4dp" />
+            android:textColor="#0B3D2E"
+            android:textSize="24sp"
+            android:textStyle="bold" />
 
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="All settings stay on this device. Nothing is stored on a server."
-            android:textSize="12sp"
-            android:paddingBottom="16dp" />
+            android:text="Auto-forwards your bank debit/credit SMS to WhatsApp. All settings stay on this phone."
+            android:textSize="13sp"
+            android:paddingTop="2dp"
+            android:paddingBottom="12dp" />
 
-        <TextView
+        <!-- STATUS -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Step 1 — Choose SIM"
-            android:textStyle="bold"
-            android:textSize="16sp"
-            android:paddingTop="8dp" />
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="2dp">
 
-        <TextView
-            android:id="@+id/simHint"
+            <TextView
+                android:id="@+id/status"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:fontFamily="monospace"
+                android:textSize="13sp"
+                android:padding="16dp" />
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- STEP 1: SIM -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textSize="12sp"
-            android:paddingBottom="4dp" />
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="2dp">
 
-        <RadioGroup
-            android:id="@+id/simGroup"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Step 2 — Permissions"
-            android:textStyle="bold"
-            android:textSize="16sp"
-            android:paddingTop="20dp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="1.  Choose SIM"
+                    android:textStyle="bold"
+                    android:textSize="16sp" />
 
-        <Button
-            android:id="@+id/grantBtn"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Grant SMS + Phone permissions" />
+                <TextView
+                    android:id="@+id/simHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="12sp"
+                    android:paddingBottom="4dp" />
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Step 3 — WhatsApp groups (one id per line)"
-            android:textStyle="bold"
-            android:textSize="16sp"
-            android:paddingTop="20dp" />
+                <RadioGroup
+                    android:id="@+id/simGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
-        <EditText
-            android:id="@+id/groupsInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="textMultiLine"
-            android:minLines="2"
-            android:gravity="top"
-            android:hint="120363...@g.us" />
-
-        <TextView
+        <!-- STEP 2: PERMISSIONS -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Forward only messages containing (comma separated)"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            android:paddingTop="16dp" />
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="2dp">
 
-        <EditText
-            android:id="@+id/keywordsInput"
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="2.  Permissions"
+                    android:textStyle="bold"
+                    android:textSize="16sp"
+                    android:paddingBottom="6dp" />
+
+                <Button
+                    android:id="@+id/grantBtn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Grant SMS + Phone permissions" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- STEP 3: KEYWORDS (the only editable text) -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:inputType="text"
-            android:hint="debited,credited" />
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="2dp">
 
-        <TextView
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="3.  Words to forward"
+                    android:textStyle="bold"
+                    android:textSize="16sp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="An SMS is forwarded only if it contains one of these (comma separated)."
+                    android:textSize="12sp"
+                    android:paddingBottom="6dp" />
+
+                <EditText
+                    android:id="@+id/keywordsInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:hint="debited,credited" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- DESTINATION (fixed, read only) -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Gateway endpoint"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            android:paddingTop="16dp" />
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="2dp">
 
-        <EditText
-            android:id="@+id/urlInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="textUri" />
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Authorization header"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            android:paddingTop="12dp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Destination (fixed)"
+                    android:textStyle="bold"
+                    android:textSize="16sp"
+                    android:paddingBottom="4dp" />
 
-        <EditText
-            android:id="@+id/authInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="text" />
-
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="x-device-id header"
-            android:textStyle="bold"
-            android:textSize="14sp"
-            android:paddingTop="12dp" />
-
-        <EditText
-            android:id="@+id/deviceInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:inputType="text" />
+                <TextView
+                    android:id="@+id/destInfo"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:textSize="12sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
         <Switch
             android:id="@+id/enabledSwitch"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Enabled (forward in background)"
-            android:paddingTop="24dp" />
+            android:text="Enabled — forward in background"
+            android:textSize="16sp"
+            android:paddingTop="4dp"
+            android:paddingBottom="8dp" />
 
         <Button
             android:id="@+id/saveBtn"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Save"
-            android:layout_marginTop="8dp" />
+            android:text="Save" />
 
         <Button
             android:id="@+id/testBtn"
@@ -154,50 +200,61 @@
             android:text="Send Test message now"
             android:layout_marginTop="8dp" />
 
-        <TextView
-            android:id="@+id/status"
+        <!-- ACTIVITY LOG -->
+        <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:fontFamily="monospace"
-            android:textSize="13sp"
-            android:paddingTop="20dp" />
+            android:layout_marginTop="16dp"
+            app:cardCornerRadius="14dp"
+            app:cardElevation="2dp">
 
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Activity log (newest first)"
-            android:textStyle="bold"
-            android:textSize="16sp"
-            android:paddingTop="20dp" />
-
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
-
-            <Button
-                android:id="@+id/refreshLogBtn"
-                android:layout_width="0dp"
-                android:layout_weight="1"
+            <LinearLayout
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="Refresh" />
+                android:orientation="vertical"
+                android:padding="16dp">
 
-            <Button
-                android:id="@+id/clearLogBtn"
-                android:layout_width="0dp"
-                android:layout_weight="1"
-                android:layout_height="wrap_content"
-                android:text="Clear" />
-        </LinearLayout>
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Activity log (newest first)"
+                    android:textStyle="bold"
+                    android:textSize="16sp" />
 
-        <TextView
-            android:id="@+id/logView"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:fontFamily="monospace"
-            android:textSize="12sp"
-            android:paddingTop="8dp"
-            android:paddingBottom="24dp" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:paddingTop="4dp">
+
+                    <Button
+                        android:id="@+id/refreshLogBtn"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="Refresh" />
+
+                    <Space
+                        android:layout_width="8dp"
+                        android:layout_height="wrap_content" />
+
+                    <Button
+                        android:id="@+id/clearLogBtn"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="Clear" />
+                </LinearLayout>
+
+                <TextView
+                    android:id="@+id/logView"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:fontFamily="monospace"
+                    android:textSize="12sp"
+                    android:paddingTop="8dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
 </ScrollView>
