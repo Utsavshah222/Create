@@ -107,6 +107,20 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:text="Grant SMS + Phone permissions" />
+
+                <Button
+                    android:id="@+id/batteryBtn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Fix battery setting (must do)" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Also enable Autostart for this app in your phone's settings, or it will be killed in the background."
+                    android:textSize="11sp"
+                    android:paddingTop="4dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 

@@ -3,10 +3,13 @@ package com.jinsolutions.smsforward
 import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.PowerManager
+import android.provider.Settings
 import android.telephony.SubscriptionInfo
 import android.telephony.SubscriptionManager
 import android.view.View
@@ -20,9 +23,12 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.workDataOf
+import java.util.concurrent.TimeUnit
 
 /**
  * Setup screen. Everything except the keyword list, the SIM and the on/off switch is fixed
@@ -74,6 +80,7 @@ class MainActivity : AppCompatActivity() {
         }
 
         findViewById<Button>(R.id.grantBtn).setOnClickListener { requestPermissions() }
+        findViewById<Button>(R.id.batteryBtn).setOnClickListener { requestBatteryExemption() }
         findViewById<Button>(R.id.saveBtn).setOnClickListener { save() }
         findViewById<Button>(R.id.testBtn).setOnClickListener { sendTest() }
         findViewById<Button>(R.id.refreshLogBtn).setOnClickListener { updateLog() }
@@ -101,6 +108,27 @@ class MainActivity : AppCompatActivity() {
         basePerms.all {
             ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
         }
+
+    /** Opens the system dialog to stop the OS from killing this app to save battery. */
+    private fun requestBatteryExemption() {
+        try {
+            val pm = getSystemService(PowerManager::class.java)
+            if (pm != null && pm.isIgnoringBatteryOptimizations(packageName)) {
+                Toast.makeText(this, "Already unrestricted ✓", Toast.LENGTH_SHORT).show()
+                return
+            }
+            val i = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS)
+            i.data = Uri.parse("package:$packageName")
+            startActivity(i)
+        } catch (e: Exception) {
+            try {
+                startActivity(Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS))
+            } catch (e2: Exception) {
+                Toast.makeText(this, "Open Settings > Apps > this app > Battery > Unrestricted",
+                    Toast.LENGTH_LONG).show()
+            }
+        }
+    }
 
     @SuppressLint("MissingPermission")
     private fun refreshSims() {
@@ -175,8 +203,16 @@ class MainActivity : AppCompatActivity() {
         Config.save(this, enabledSwitch.isChecked, selectedSubId(), selectedSimLabel(), kws)
         keywordsInput.setText(kws.joinToString(","))
 
-        // Start/stop the always-on background service.
-        if (enabledSwitch.isChecked) ForwardService.start(this) else ForwardService.stop(this)
+        // Start/stop the always-on background service + watchdog.
+        if (enabledSwitch.isChecked) {
+            ForwardService.start(this)
+            val work = PeriodicWorkRequestBuilder<WatchdogWorker>(15, TimeUnit.MINUTES).build()
+            WorkManager.getInstance(this)
+                .enqueueUniquePeriodicWork("watchdog", ExistingPeriodicWorkPolicy.UPDATE, work)
+        } else {
+            ForwardService.stop(this)
+            WorkManager.getInstance(this).cancelUniqueWork("watchdog")
+        }
 
         Toast.makeText(this, "Saved.", Toast.LENGTH_SHORT).show()
         updateStatus()
