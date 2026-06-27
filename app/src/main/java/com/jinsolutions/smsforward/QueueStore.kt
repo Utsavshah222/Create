@@ -15,11 +15,11 @@ object QueueStore {
     private const val KEY = "items"
     private val lock = Any()
 
-    data class Item(val phone: String, val message: String, val attempts: Int)
+    data class Item(val phone: String, val message: String, val device: String, val attempts: Int)
 
-    fun add(c: Context, phone: String, message: String) = synchronized(lock) {
+    fun add(c: Context, phone: String, message: String, device: String) = synchronized(lock) {
         val arr = read(c)
-        arr.put(JSONObject().put("p", phone).put("m", message).put("a", 0))
+        arr.put(JSONObject().put("p", phone).put("m", message).put("d", device).put("a", 0))
         write(c, arr)
     }
 
@@ -27,7 +27,7 @@ object QueueStore {
         val arr = read(c)
         if (arr.length() == 0) return null
         val o = arr.getJSONObject(0)
-        Item(o.getString("p"), o.getString("m"), o.optInt("a", 0))
+        Item(o.getString("p"), o.getString("m"), o.optString("d", ""), o.optInt("a", 0))
     }
 
     fun removeHead(c: Context) = synchronized(lock) {

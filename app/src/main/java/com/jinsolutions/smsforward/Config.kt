@@ -30,7 +30,9 @@ object Config {
 
     // ---- FIXED (shared by both features) ----
     const val GATEWAY_URL = "https://wa.jinsolutions.in/send/message"
-    const val DEVICE_ID = "savebirdskandivali-admin"
+    // Each feature sends from its own gateway device (x-device-id).
+    const val SMS_DEVICE_ID = "savebirdskandivali-admin"   // bank SMS -> groups
+    const val CALL_DEVICE_ID = "savebirdskandivali"        // missed-call reply -> caller
     val GROUPS = listOf(
         "120363416877358281@g.us",
         "919664305350-1606905372@g.us"

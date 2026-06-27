@@ -275,7 +275,7 @@ class MainActivity : AppCompatActivity() {
             return
         }
         for (group in Config.GROUPS) {
-            QueueStore.add(this, group, "Test from SMS to WhatsApp app. If you see this, sending works.")
+            QueueStore.add(this, group, "Test from SMS to WhatsApp app. If you see this, sending works.", Config.SMS_DEVICE_ID)
         }
         MessageStore.add(this, "TEST", "you", "Test message", "queued to ${Config.GROUPS.size} group(s)")
         EventLog.add(this, "TEST queued ${Config.GROUPS.size} message(s)")
@@ -346,7 +346,7 @@ class MainActivity : AppCompatActivity() {
             val b = Button(this)
             b.text = "Send to group"
             b.setOnClickListener {
-                for (group in Config.GROUPS) QueueStore.add(this, group, rec.text)
+                for (group in Config.GROUPS) QueueStore.add(this, group, rec.text, Config.SMS_DEVICE_ID)
                 ForwardService.start(this)
                 Toast.makeText(this, "Queued to groups.", Toast.LENGTH_SHORT).show()
                 updateStatus()

@@ -88,8 +88,9 @@ class ForwardService : Service() {
                 }
                 notifiedOffline = false
 
+                val device = item.device.ifBlank { Config.SMS_DEVICE_ID }
                 val out = Sender.send(
-                    Config.GATEWAY_URL, Config.AUTH, Config.DEVICE_ID, item.phone, item.message
+                    Config.GATEWAY_URL, Config.AUTH, device, item.phone, item.message
                 )
                 when {
                     out.success -> {
