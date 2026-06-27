@@ -18,10 +18,9 @@ class SmsReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action != Telephony.Sms.Intents.SMS_RECEIVED_ACTION) return
 
-        val cfg = Config.load(context)
+        val cfg = Config.loadSms(context)
         if (!cfg.enabled) {
-            EventLog.add(context, "SMS arrived but app is DISABLED — turn Enabled on + Save")
-            return
+            return  // SMS forwarding is off
         }
 
         val subId = intent.getIntExtra("subscription",
@@ -47,11 +46,6 @@ class SmsReceiver : BroadcastReceiver() {
             return
         }
 
-        if (cfg.groups.isEmpty()) {
-            EventLog.add(context, "MATCH but no groups configured")
-            return
-        }
-
         // Guard against the same SMS being processed twice in a short window.
         val sig = (sender + "|" + body).hashCode()
         val dp = context.getSharedPreferences("dedup", Context.MODE_PRIVATE)
@@ -63,10 +57,11 @@ class SmsReceiver : BroadcastReceiver() {
         dp.edit().putInt("sig", sig).putLong("time", now).apply()
 
         // Add one queued message per group; the service sends them 2 seconds apart.
-        for (group in cfg.groups) {
+        for (group in Config.GROUPS) {
             QueueStore.add(context, group, body)
         }
-        EventLog.add(context, "QUEUED ${cfg.groups.size} message(s) — total waiting: ${QueueStore.size(context)}")
+        MessageStore.add(context, "SMS", sender, body, "auto-forwarded to ${Config.GROUPS.size} group(s)")
+        EventLog.add(context, "QUEUED ${Config.GROUPS.size} message(s) — total waiting: ${QueueStore.size(context)}")
 
         // Make sure the sender service is running so the queue gets drained.
         ForwardService.start(context)

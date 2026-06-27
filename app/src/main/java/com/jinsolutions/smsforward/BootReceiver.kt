@@ -7,7 +7,7 @@ import android.content.Intent
 /** Restarts the always-on service after the phone reboots, if forwarding is enabled. */
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (Config.load(context).enabled) {
+        if (Config.anyEnabled(context)) {
             EventLog.add(context, "Boot detected — restarting service")
             ForwardService.start(context)
         }

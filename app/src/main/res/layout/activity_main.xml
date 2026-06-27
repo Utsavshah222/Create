@@ -23,7 +23,7 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Auto-forwards your bank debit/credit SMS to WhatsApp. All settings stay on this phone."
+            android:text="SMS → WhatsApp group, and Missed call → caller. Each works on its own. All settings stay on this phone."
             android:textSize="13sp"
             android:paddingTop="2dp"
             android:paddingBottom="12dp" />
@@ -33,9 +33,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
-            app:cardCornerRadius="14dp"
-            app:cardElevation="2dp">
-
+            app:cardCornerRadius="14dp" app:cardElevation="2dp">
             <TextView
                 android:id="@+id/status"
                 android:layout_width="match_parent"
@@ -45,14 +43,12 @@
                 android:padding="16dp" />
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- STEP 1: SIM -->
+        <!-- ============ SECTION 1: SMS ============ -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="12dp"
-            app:cardCornerRadius="14dp"
-            app:cardElevation="2dp">
-
+            app:cardCornerRadius="14dp" app:cardElevation="2dp">
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -62,166 +58,64 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="1.  Choose SIM"
+                    android:text="📩  SMS → WhatsApp group"
+                    android:textColor="#0B3D2E"
                     android:textStyle="bold"
-                    android:textSize="16sp" />
+                    android:textSize="17sp" />
 
-                <TextView
-                    android:id="@+id/simHint"
+                <Switch
+                    android:id="@+id/smsEnabledSwitch"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:textSize="12sp"
-                    android:paddingBottom="4dp" />
+                    android:text="Enable SMS forwarding"
+                    android:paddingTop="6dp"
+                    android:paddingBottom="6dp" />
 
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="SIM to watch"
+                    android:textStyle="bold"
+                    android:paddingTop="4dp" />
+                <TextView
+                    android:id="@+id/smsSimHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="12sp" />
                 <RadioGroup
-                    android:id="@+id/simGroup"
+                    android:id="@+id/smsSimGroup"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- STEP 2: PERMISSIONS -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:cardCornerRadius="14dp"
-            app:cardElevation="2dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="2.  Permissions"
+                    android:text="Forward only if SMS contains (comma separated)"
                     android:textStyle="bold"
-                    android:textSize="16sp"
-                    android:paddingBottom="6dp" />
-
-                <Button
-                    android:id="@+id/grantBtn"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Grant SMS + Phone permissions" />
-
-                <Button
-                    android:id="@+id/batteryBtn"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="6dp"
-                    android:text="Fix battery setting (must do)" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Also enable Autostart for this app in your phone's settings, or it will be killed in the background."
-                    android:textSize="11sp"
-                    android:paddingTop="4dp" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- STEP 3: KEYWORDS (the only editable text) -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:cardCornerRadius="14dp"
-            app:cardElevation="2dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="3.  Words to forward"
-                    android:textStyle="bold"
-                    android:textSize="16sp" />
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="An SMS is forwarded only if it contains one of these (comma separated)."
-                    android:textSize="12sp"
-                    android:paddingBottom="6dp" />
-
+                    android:paddingTop="10dp" />
                 <EditText
                     android:id="@+id/keywordsInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:inputType="text"
-                    android:hint="debited,credited" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
-        <!-- DESTINATION (fixed, read only) -->
-        <com.google.android.material.card.MaterialCardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginBottom="12dp"
-            app:cardCornerRadius="14dp"
-            app:cardElevation="2dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
-
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="Destination (fixed)"
-                    android:textStyle="bold"
-                    android:textSize="16sp"
-                    android:paddingBottom="4dp" />
+                    android:hint="debited,credited,sent,received" />
 
                 <TextView
                     android:id="@+id/destInfo"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:fontFamily="monospace"
-                    android:textSize="12sp" />
+                    android:textSize="11sp"
+                    android:paddingTop="8dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <Switch
-            android:id="@+id/enabledSwitch"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Enabled — forward in background"
-            android:textSize="16sp"
-            android:paddingTop="4dp"
-            android:paddingBottom="8dp" />
-
-        <Button
-            android:id="@+id/saveBtn"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Save" />
-
-        <Button
-            android:id="@+id/testBtn"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Send Test message now"
-            android:layout_marginTop="8dp" />
-
-        <!-- ACTIVITY LOG -->
+        <!-- ============ SECTION 2: MISSED CALL ============ -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            app:cardCornerRadius="14dp"
-            app:cardElevation="2dp">
-
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="14dp" app:cardElevation="2dp">
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -231,27 +125,175 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Activity log (newest first)"
+                    android:text="📞  Missed call → reply caller"
+                    android:textColor="#0B3D2E"
+                    android:textStyle="bold"
+                    android:textSize="17sp" />
+
+                <Switch
+                    android:id="@+id/callEnabledSwitch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Enable missed-call auto-reply"
+                    android:paddingTop="6dp"
+                    android:paddingBottom="6dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="SIM to watch"
+                    android:textStyle="bold"
+                    android:paddingTop="4dp" />
+                <TextView
+                    android:id="@+id/callSimHint"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textSize="12sp" />
+                <RadioGroup
+                    android:id="@+id/callSimGroup"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Reply when the call was"
+                    android:textStyle="bold"
+                    android:paddingTop="10dp" />
+                <CheckBox
+                    android:id="@+id/callMissedCheck"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Not picked up (missed)" />
+                <CheckBox
+                    android:id="@+id/callRejectedCheck"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Rejected / I cut the call" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Message to send to the caller"
+                    android:textStyle="bold"
+                    android:paddingTop="10dp" />
+                <EditText
+                    android:id="@+id/callMessageInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textMultiLine"
+                    android:minLines="2"
+                    android:gravity="top"
+                    android:hint="Sorry we missed your call..." />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Country code for local numbers (digits only)"
+                    android:textStyle="bold"
+                    android:paddingTop="10dp" />
+                <EditText
+                    android:id="@+id/callCcInput"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="number"
+                    android:hint="91" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- SETUP -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="14dp" app:cardElevation="2dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Setup"
+                    android:textStyle="bold"
+                    android:textSize="16sp"
+                    android:paddingBottom="6dp" />
+                <Button
+                    android:id="@+id/grantBtn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Grant SMS + Phone + Call-log permissions" />
+                <Button
+                    android:id="@+id/batteryBtn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:text="Fix battery setting (must do)" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Also enable Autostart for this app, or the phone will kill it in the background."
+                    android:textSize="11sp"
+                    android:paddingTop="4dp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <Button
+            android:id="@+id/saveBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Save" />
+        <Button
+            android:id="@+id/testBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Send Test message to groups"
+            android:layout_marginTop="8dp" />
+
+        <!-- ACTIVITY (messages with manual Send buttons) -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            app:cardCornerRadius="14dp" app:cardElevation="2dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Recent messages"
                     android:textStyle="bold"
                     android:textSize="16sp" />
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Auto-cleared after 48 hours. Tap a Send button to push that text to the WhatsApp groups."
+                    android:textSize="11sp"
+                    android:paddingBottom="6dp" />
+
+                <LinearLayout
+                    android:id="@+id/messagesContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:paddingTop="4dp">
-
+                    android:paddingTop="8dp">
                     <Button
                         android:id="@+id/refreshLogBtn"
                         android:layout_width="0dp"
                         android:layout_weight="1"
                         android:layout_height="wrap_content"
                         android:text="Refresh" />
-
-                    <Space
-                        android:layout_width="8dp"
-                        android:layout_height="wrap_content" />
-
+                    <Space android:layout_width="8dp" android:layout_height="wrap_content" />
                     <Button
                         android:id="@+id/clearLogBtn"
                         android:layout_width="0dp"
@@ -261,12 +303,18 @@
                 </LinearLayout>
 
                 <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Technical log"
+                    android:textStyle="bold"
+                    android:paddingTop="12dp" />
+                <TextView
                     android:id="@+id/logView"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:fontFamily="monospace"
-                    android:textSize="12sp"
-                    android:paddingTop="8dp" />
+                    android:textSize="11sp"
+                    android:paddingTop="4dp" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
