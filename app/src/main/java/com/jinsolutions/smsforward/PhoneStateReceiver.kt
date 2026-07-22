@@ -68,7 +68,7 @@ class PhoneStateReceiver : BroadcastReceiver() {
         dp.edit().putLong("lastDate", rec.date).apply()
 
         val kind = if (isRejected) "rejected" else "missed"
-        QueueStore.add(context, phone, cfg.message, Config.CALL_DEVICE_ID)
+        QueueStore.add(context, phone, cfg.message, Config.getCallDeviceId(context))
         MessageStore.add(context, "CALL", rec.number, cfg.message, "auto-reply queued ($kind)")
         EventLog.add(context, "MISSED CALL ${rec.number} ($kind) -> queued reply to $phone")
         ForwardService.start(context)

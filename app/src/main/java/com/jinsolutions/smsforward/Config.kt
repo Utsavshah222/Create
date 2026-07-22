@@ -88,6 +88,19 @@ object Config {
             .apply()
     }
 
+    // ---- Editable sender device ids (x-device-id). Default to the baked-in values. ----
+    fun getSmsDeviceId(c: Context): String =
+        p(c).getString("sms_device", SMS_DEVICE_ID) ?: SMS_DEVICE_ID
+
+    fun setSmsDeviceId(c: Context, v: String) =
+        p(c).edit().putString("sms_device", v).apply()
+
+    fun getCallDeviceId(c: Context): String =
+        p(c).getString("call_device", CALL_DEVICE_ID) ?: CALL_DEVICE_ID
+
+    fun setCallDeviceId(c: Context, v: String) =
+        p(c).edit().putString("call_device", v).apply()
+
     fun anyEnabled(c: Context) = loadSms(c).enabled || loadCall(c).enabled
 
     private fun csv(s: String?): List<String> =

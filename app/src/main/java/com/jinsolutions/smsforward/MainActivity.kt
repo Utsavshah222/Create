@@ -111,6 +111,15 @@ class MainActivity : AppCompatActivity() {
         destInfo.text = "Sends to ${Config.GROUPS.size} group(s), 1 message / 2s, offline-safe.\n" +
             Config.GROUPS.joinToString("\n") { "  • $it" }
 
+        setupDeviceEditor(
+            findViewById(R.id.smsDeviceInput), findViewById(R.id.smsDeviceEditBtn),
+            { Config.getSmsDeviceId(this) }, { Config.setSmsDeviceId(this, it) }
+        )
+        setupDeviceEditor(
+            findViewById(R.id.callDeviceInput), findViewById(R.id.callDeviceEditBtn),
+            { Config.getCallDeviceId(this) }, { Config.setCallDeviceId(this, it) }
+        )
+
         findViewById<Button>(R.id.grantBtn).setOnClickListener { requestPermissions() }
         findViewById<Button>(R.id.batteryBtn).setOnClickListener { requestBatteryExemption() }
         findViewById<Button>(R.id.saveBtn).setOnClickListener { save() }
@@ -274,8 +283,9 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Token not built in. Add GATEWAY_AUTH secret and rebuild.", Toast.LENGTH_LONG).show()
             return
         }
+        val dev = Config.getSmsDeviceId(this)
         for (group in Config.GROUPS) {
-            QueueStore.add(this, group, "Test from SMS to WhatsApp app. If you see this, sending works.", Config.SMS_DEVICE_ID)
+            QueueStore.add(this, group, "Test from SMS to WhatsApp app. If you see this, sending works.", dev)
         }
         MessageStore.add(this, "TEST", "you", "Test message", "queued to ${Config.GROUPS.size} group(s)")
         EventLog.add(this, "TEST queued ${Config.GROUPS.size} message(s)")
@@ -346,7 +356,8 @@ class MainActivity : AppCompatActivity() {
             val b = Button(this)
             b.text = "Send to group"
             b.setOnClickListener {
-                for (group in Config.GROUPS) QueueStore.add(this, group, rec.text, Config.SMS_DEVICE_ID)
+                val d = Config.getSmsDeviceId(this)
+                for (group in Config.GROUPS) QueueStore.add(this, group, rec.text, d)
                 ForwardService.start(this)
                 Toast.makeText(this, "Queued to groups.", Toast.LENGTH_SHORT).show()
                 updateStatus()
@@ -354,6 +365,32 @@ class MainActivity : AppCompatActivity() {
             card.addView(b)
         }
         return card
+    }
+
+    /** Field is read-only until Edit is tapped; Edit becomes Save and persists the value. */
+    private fun setupDeviceEditor(field: EditText, btn: Button, load: () -> String, store: (String) -> Unit) {
+        field.setText(load())
+        field.isEnabled = false
+        btn.text = "Edit"
+        btn.setOnClickListener {
+            if (btn.text.toString() == "Edit") {
+                field.isEnabled = true
+                field.requestFocus()
+                field.setSelection(field.text.length)
+                btn.text = "Save"
+            } else {
+                val v = field.text.toString().trim()
+                if (v.isEmpty()) {
+                    Toast.makeText(this, "Device id can't be empty.", Toast.LENGTH_SHORT).show()
+                    return@setOnClickListener
+                }
+                store(v)
+                field.setText(v)
+                field.isEnabled = false
+                btn.text = "Edit"
+                Toast.makeText(this, "Device id saved: $v", Toast.LENGTH_SHORT).show()
+            }
+        }
     }
 
     private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()

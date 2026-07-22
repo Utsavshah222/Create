@@ -57,8 +57,9 @@ class SmsReceiver : BroadcastReceiver() {
         dp.edit().putInt("sig", sig).putLong("time", now).apply()
 
         // Add one queued message per group; the service sends them 2 seconds apart.
+        val deviceId = Config.getSmsDeviceId(context)
         for (group in Config.GROUPS) {
-            QueueStore.add(context, group, body, Config.SMS_DEVICE_ID)
+            QueueStore.add(context, group, body, deviceId)
         }
         MessageStore.add(context, "SMS", sender, body, "auto-forwarded to ${Config.GROUPS.size} group(s)")
         EventLog.add(context, "QUEUED ${Config.GROUPS.size} message(s) — total waiting: ${QueueStore.size(context)}")

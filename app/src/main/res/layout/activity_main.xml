@@ -101,6 +101,32 @@
                     android:hint="debited,credited,sent,received" />
 
                 <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Sender device id (x-device-id)"
+                    android:textStyle="bold"
+                    android:paddingTop="10dp" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+                    <EditText
+                        android:id="@+id/smsDeviceInput"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:inputType="text"
+                        android:enabled="false"
+                        android:hint="savebirdskandivali-admin" />
+                    <Button
+                        android:id="@+id/smsDeviceEditBtn"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Edit" />
+                </LinearLayout>
+
+                <TextView
                     android:id="@+id/destInfo"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
@@ -198,6 +224,32 @@
                     android:layout_height="wrap_content"
                     android:inputType="number"
                     android:hint="91" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Sender device id (x-device-id)"
+                    android:textStyle="bold"
+                    android:paddingTop="10dp" />
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+                    <EditText
+                        android:id="@+id/callDeviceInput"
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:inputType="text"
+                        android:enabled="false"
+                        android:hint="savebirdskandivali" />
+                    <Button
+                        android:id="@+id/callDeviceEditBtn"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="Edit" />
+                </LinearLayout>
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
