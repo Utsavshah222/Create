@@ -18,7 +18,8 @@ data class CallConfig(
     val onMissed: Boolean,      // didn't pick up
     val onRejected: Boolean,    // cut / declined
     val message: String,
-    val countryCode: String
+    val countryCode: String,
+    val sendSms: Boolean        // also send the same message as a real SMS from the SIM
 )
 
 /**
@@ -73,7 +74,8 @@ object Config {
         onMissed = p(c).getBoolean("call_missed", true),
         onRejected = p(c).getBoolean("call_rejected", true),
         message = p(c).getString("call_message", DEFAULT_CALL_MESSAGE) ?: DEFAULT_CALL_MESSAGE,
-        countryCode = p(c).getString("call_cc", DEFAULT_COUNTRY_CODE) ?: DEFAULT_COUNTRY_CODE
+        countryCode = p(c).getString("call_cc", DEFAULT_COUNTRY_CODE) ?: DEFAULT_COUNTRY_CODE,
+        sendSms = p(c).getBoolean("call_sendsms", true)
     )
 
     fun saveCall(c: Context, cfg: CallConfig) {
@@ -85,6 +87,7 @@ object Config {
             .putBoolean("call_rejected", cfg.onRejected)
             .putString("call_message", cfg.message)
             .putString("call_cc", cfg.countryCode)
+            .putBoolean("call_sendsms", cfg.sendSms)
             .apply()
     }
 

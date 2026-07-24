@@ -55,6 +55,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var callSimGroup: RadioGroup
     private lateinit var callMissedCheck: CheckBox
     private lateinit var callRejectedCheck: CheckBox
+    private lateinit var callSmsCheck: CheckBox
     private lateinit var callMessageInput: EditText
     private lateinit var callCcInput: EditText
 
@@ -94,6 +95,7 @@ class MainActivity : AppCompatActivity() {
         callSimGroup = findViewById(R.id.callSimGroup)
         callMissedCheck = findViewById(R.id.callMissedCheck)
         callRejectedCheck = findViewById(R.id.callRejectedCheck)
+        callSmsCheck = findViewById(R.id.callSmsCheck)
         callMessageInput = findViewById(R.id.callMessageInput)
         callCcInput = findViewById(R.id.callCcInput)
 
@@ -105,6 +107,7 @@ class MainActivity : AppCompatActivity() {
         callEnabledSwitch.isChecked = call.enabled
         callMissedCheck.isChecked = call.onMissed
         callRejectedCheck.isChecked = call.onRejected
+        callSmsCheck.isChecked = call.sendSms
         callMessageInput.setText(call.message)
         callCcInput.setText(call.countryCode)
 
@@ -142,6 +145,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun requestPermissions() {
         val perms = (smsPerms + callPerms).toMutableSet()
+        perms.add(Manifest.permission.SEND_SMS)
         if (Build.VERSION.SDK_INT >= 33) perms.add(Manifest.permission.POST_NOTIFICATIONS)
         permLauncher.launch(perms.toTypedArray())
     }
@@ -247,6 +251,10 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Pick at least one call condition (missed / rejected).", Toast.LENGTH_LONG).show()
             return
         }
+        if (callOn && callSmsCheck.isChecked && !SmsSender.hasPermission(this)) {
+            Toast.makeText(this, "Grant SMS-send permission to also text the caller.", Toast.LENGTH_LONG).show()
+            requestPermissions(); return
+        }
 
         val kws = keywordsInput.text.toString()
             .split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }
@@ -261,7 +269,7 @@ class MainActivity : AppCompatActivity() {
         callMessageInput.setText(msg)
         Config.saveCall(this, CallConfig(
             callOn, selectedSubId(callSimGroup), selectedLabel(callSimGroup),
-            callMissedCheck.isChecked, callRejectedCheck.isChecked, msg, cc
+            callMissedCheck.isChecked, callRejectedCheck.isChecked, msg, cc, callSmsCheck.isChecked
         ))
 
         if (Config.anyEnabled(this)) {
@@ -303,7 +311,8 @@ class MainActivity : AppCompatActivity() {
             append("SMS: ${if (sms.enabled) "● ON" else "○ off"}  (${if (hasSmsPerms()) "perms ok" else "PERMS MISSING"})\n")
             append("Call: ${if (call.enabled) "● ON" else "○ off"}  (${if (hasCallPerms()) "perms ok" else "PERMS MISSING"})\n")
             append("Token built in: ${if (Config.AUTH.isBlank()) "NO — add GATEWAY_AUTH secret" else "yes"}\n")
-            append("In send queue: ${QueueStore.size(this@MainActivity)}")
+            append("SMS-send perm: ${if (SmsSender.hasPermission(this@MainActivity)) "granted" else "not granted"}\n")
+            append("WhatsApp queue: ${QueueStore.size(this@MainActivity)} · SMS queue: ${SmsQueueStore.size(this@MainActivity)}")
         }
     }
 

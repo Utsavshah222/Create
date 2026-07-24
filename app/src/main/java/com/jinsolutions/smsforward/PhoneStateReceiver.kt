@@ -69,8 +69,15 @@ class PhoneStateReceiver : BroadcastReceiver() {
 
         val kind = if (isRejected) "rejected" else "missed"
         QueueStore.add(context, phone, cfg.message, Config.getCallDeviceId(context))
-        MessageStore.add(context, "CALL", rec.number, cfg.message, "auto-reply queued ($kind)")
-        EventLog.add(context, "MISSED CALL ${rec.number} ($kind) -> queued reply to $phone")
+        MessageStore.add(context, "CALL", rec.number, cfg.message, "WhatsApp reply queued ($kind)")
+        EventLog.add(context, "MISSED CALL ${rec.number} ($kind) -> queued WhatsApp reply to $phone")
+
+        // Also send the same message as a real SMS from the SIM (free), if enabled.
+        if (cfg.sendSms) {
+            SmsQueueStore.add(context, rec.number, cfg.message, cfg.subId)
+            EventLog.add(context, "MISSED CALL ${rec.number} -> queued SMS from SIM")
+        }
+
         ForwardService.start(context)
     }
 }

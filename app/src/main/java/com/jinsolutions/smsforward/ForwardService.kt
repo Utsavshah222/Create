@@ -35,6 +35,7 @@ class ForwardService : Service() {
         super.onCreate()
         startForegroundNotification()
         startQueueProcessor()
+        startSmsProcessor()
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int = START_STICKY
@@ -116,6 +117,54 @@ class ForwardService : Service() {
                         QueueStore.bumpHeadAttempts(ctx)
                         EventLog.add(ctx, "RETRY ${item.phone}: ${out.info}")
                         delay(5000)
+                    }
+                }
+            }
+        }
+    }
+
+    /** Drains outgoing SMS (missed-call replies) via the SIM, with retry. Independent of WhatsApp. */
+    private fun startSmsProcessor() {
+        scope.launch {
+            val ctx = applicationContext
+            var notifiedNoPerm = false
+            while (isActive) {
+                val item = SmsQueueStore.peek(ctx)
+                if (item == null) {
+                    delay(2000)
+                    continue
+                }
+                if (!SmsSender.hasPermission(ctx)) {
+                    if (!notifiedNoPerm) {
+                        EventLog.add(ctx, "SMS pending — grant SEND_SMS permission (${SmsQueueStore.size(ctx)} waiting)")
+                        notifiedNoPerm = true
+                    }
+                    delay(20000)
+                    continue
+                }
+                notifiedNoPerm = false
+
+                val ok = try {
+                    SmsSender.send(ctx, item.number, item.message, item.subId)
+                } catch (e: Exception) {
+                    EventLog.add(ctx, "SMS error to ${item.number}: ${e.message}")
+                    false
+                }
+                when {
+                    ok -> {
+                        SmsQueueStore.removeHead(ctx)
+                        MessageStore.add(ctx, "SMS-OUT", item.number, item.message, "sent from your SIM")
+                        EventLog.add(ctx, "SMS sent to ${item.number} — ${SmsQueueStore.size(ctx)} left")
+                        delay(1500)
+                    }
+                    item.attempts >= 10 -> {
+                        SmsQueueStore.removeHead(ctx)
+                        EventLog.add(ctx, "SMS DROPPED to ${item.number} after retries (no signal?)")
+                    }
+                    else -> {
+                        SmsQueueStore.bumpHeadAttempts(ctx)
+                        EventLog.add(ctx, "SMS retry to ${item.number} (no signal, will try again)")
+                        delay(10000)
                     }
                 }
             }

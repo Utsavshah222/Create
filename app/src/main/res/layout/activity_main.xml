@@ -197,6 +197,12 @@
                     android:layout_height="wrap_content"
                     android:text="Rejected / I cut the call" />
 
+                <CheckBox
+                    android:id="@+id/callSmsCheck"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Also send the same message as an SMS from your SIM (free)" />
+
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
