@@ -23,6 +23,16 @@ data class CallConfig(
 )
 
 /**
+ * Auto-reject incoming calls OUTSIDE these hours (Indian time). Times are minutes-of-day.
+ */
+data class WorkingHours(val enabled: Boolean, val startMin: Int, val endMin: Int) {
+    /** True if the given minute-of-day falls inside working hours. */
+    fun isWithin(minuteOfDay: Int): Boolean =
+        if (startMin <= endMin) minuteOfDay in startMin until endMin
+        else minuteOfDay >= startMin || minuteOfDay < endMin
+}
+
+/**
  * All settings live on the device only. Fixed values (gateway/token/groups) are baked in;
  * the token is injected at build time from the GATEWAY_AUTH secret and is never in source.
  */
@@ -104,7 +114,23 @@ object Config {
     fun setCallDeviceId(c: Context, v: String) =
         p(c).edit().putString("call_device", v).apply()
 
-    fun anyEnabled(c: Context) = loadSms(c).enabled || loadCall(c).enabled
+    // ---- WORKING HOURS (auto-reject outside these times) ----
+    fun loadWorkingHours(c: Context) = WorkingHours(
+        enabled = p(c).getBoolean("wh_enabled", false),
+        startMin = p(c).getInt("wh_start", 10 * 60),   // 10:00
+        endMin = p(c).getInt("wh_end", 18 * 60)        // 18:00
+    )
+
+    fun saveWorkingHours(c: Context, wh: WorkingHours) {
+        p(c).edit()
+            .putBoolean("wh_enabled", wh.enabled)
+            .putInt("wh_start", wh.startMin)
+            .putInt("wh_end", wh.endMin)
+            .apply()
+    }
+
+    fun anyEnabled(c: Context) =
+        loadSms(c).enabled || loadCall(c).enabled || loadWorkingHours(c).enabled
 
     private fun csv(s: String?): List<String> =
         s.orEmpty().split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }

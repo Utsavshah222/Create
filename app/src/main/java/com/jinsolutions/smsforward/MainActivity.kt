@@ -59,6 +59,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var callMessageInput: EditText
     private lateinit var callCcInput: EditText
 
+    // Working hours
+    private lateinit var autoRejectSwitch: Switch
+    private lateinit var whStartInput: EditText
+    private lateinit var whEndInput: EditText
+
     private val smsPerms = arrayOf(
         Manifest.permission.RECEIVE_SMS,
         Manifest.permission.READ_SMS,
@@ -98,6 +103,9 @@ class MainActivity : AppCompatActivity() {
         callSmsCheck = findViewById(R.id.callSmsCheck)
         callMessageInput = findViewById(R.id.callMessageInput)
         callCcInput = findViewById(R.id.callCcInput)
+        autoRejectSwitch = findViewById(R.id.autoRejectSwitch)
+        whStartInput = findViewById(R.id.whStartInput)
+        whEndInput = findViewById(R.id.whEndInput)
 
         val sms = Config.loadSms(this)
         smsEnabledSwitch.isChecked = sms.enabled
@@ -110,6 +118,11 @@ class MainActivity : AppCompatActivity() {
         callSmsCheck.isChecked = call.sendSms
         callMessageInput.setText(call.message)
         callCcInput.setText(call.countryCode)
+
+        val wh = Config.loadWorkingHours(this)
+        autoRejectSwitch.isChecked = wh.enabled
+        whStartInput.setText(fmtHHMM(wh.startMin))
+        whEndInput.setText(fmtHHMM(wh.endMin))
 
         destInfo.text = "Sends to ${Config.GROUPS.size} group(s), 1 message / 2s, offline-safe.\n" +
             Config.GROUPS.joinToString("\n") { "  • $it" }
@@ -146,9 +159,26 @@ class MainActivity : AppCompatActivity() {
     private fun requestPermissions() {
         val perms = (smsPerms + callPerms).toMutableSet()
         perms.add(Manifest.permission.SEND_SMS)
+        perms.add(Manifest.permission.ANSWER_PHONE_CALLS)
         if (Build.VERSION.SDK_INT >= 33) perms.add(Manifest.permission.POST_NOTIFICATIONS)
         permLauncher.launch(perms.toTypedArray())
     }
+
+    private fun hasAnswerCallsPerm() =
+        ContextCompat.checkSelfPermission(this, Manifest.permission.ANSWER_PHONE_CALLS) ==
+            PackageManager.PERMISSION_GRANTED
+
+    private fun parseHHMM(s: String, default: Int): Int {
+        val parts = s.trim().split(":")
+        if (parts.size == 2) {
+            val h = parts[0].toIntOrNull()
+            val m = parts[1].toIntOrNull()
+            if (h != null && m != null && h in 0..23 && m in 0..59) return h * 60 + m
+        }
+        return default
+    }
+
+    private fun fmtHHMM(min: Int): String = "%02d:%02d".format(min / 60, min % 60)
 
     private fun hasSmsPerms() = smsPerms.all {
         ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
@@ -255,6 +285,10 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Grant SMS-send permission to also text the caller.", Toast.LENGTH_LONG).show()
             requestPermissions(); return
         }
+        if (autoRejectSwitch.isChecked && !hasAnswerCallsPerm()) {
+            Toast.makeText(this, "Grant the Phone (answer calls) permission to auto-reject.", Toast.LENGTH_LONG).show()
+            requestPermissions(); return
+        }
 
         val kws = keywordsInput.text.toString()
             .split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }
@@ -271,6 +305,12 @@ class MainActivity : AppCompatActivity() {
             callOn, selectedSubId(callSimGroup), selectedLabel(callSimGroup),
             callMissedCheck.isChecked, callRejectedCheck.isChecked, msg, cc, callSmsCheck.isChecked
         ))
+
+        val startMin = parseHHMM(whStartInput.text.toString(), 10 * 60)
+        val endMin = parseHHMM(whEndInput.text.toString(), 18 * 60)
+        whStartInput.setText(fmtHHMM(startMin))
+        whEndInput.setText(fmtHHMM(endMin))
+        Config.saveWorkingHours(this, WorkingHours(autoRejectSwitch.isChecked, startMin, endMin))
 
         if (Config.anyEnabled(this)) {
             ForwardService.start(this)
@@ -307,9 +347,11 @@ class MainActivity : AppCompatActivity() {
     private fun updateStatus() {
         val sms = Config.loadSms(this)
         val call = Config.loadCall(this)
+        val wh = Config.loadWorkingHours(this)
         status.text = buildString {
             append("SMS: ${if (sms.enabled) "● ON" else "○ off"}  (${if (hasSmsPerms()) "perms ok" else "PERMS MISSING"})\n")
             append("Call: ${if (call.enabled) "● ON" else "○ off"}  (${if (hasCallPerms()) "perms ok" else "PERMS MISSING"})\n")
+            append("Auto-reject: ${if (wh.enabled) "● ON ${fmtHHMM(wh.startMin)}-${fmtHHMM(wh.endMin)} IST" else "○ off"}  (${if (hasAnswerCallsPerm()) "perms ok" else "PERMS MISSING"})\n")
             append("Token built in: ${if (Config.AUTH.isBlank()) "NO — add GATEWAY_AUTH secret" else "yes"}\n")
             append("SMS-send perm: ${if (SmsSender.hasPermission(this@MainActivity)) "granted" else "not granted"}\n")
             append("WhatsApp queue: ${QueueStore.size(this@MainActivity)} · SMS queue: ${SmsQueueStore.size(this@MainActivity)}")

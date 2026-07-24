@@ -259,6 +259,72 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- ============ SECTION 3: WORKING HOURS ============ -->
+        <com.google.android.material.card.MaterialCardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="12dp"
+            app:cardCornerRadius="14dp" app:cardElevation="2dp">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="🕒  Working hours (auto-reject)"
+                    android:textColor="#0B3D2E"
+                    android:textStyle="bold"
+                    android:textSize="17sp" />
+
+                <Switch
+                    android:id="@+id/autoRejectSwitch"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Auto-reject calls OUTSIDE working hours"
+                    android:paddingTop="6dp"
+                    android:paddingBottom="6dp" />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Indian time (IST), 24-hour. Inside these hours calls ring normally. Outside, the call is rejected and the caller gets the same reply (SMS + WhatsApp)."
+                    android:textSize="11sp"
+                    android:paddingBottom="6dp" />
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+                    <LinearLayout
+                        android:layout_width="0dp" android:layout_weight="1"
+                        android:layout_height="wrap_content" android:orientation="vertical">
+                        <TextView
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="Start (HH:MM)" android:textStyle="bold" />
+                        <EditText
+                            android:id="@+id/whStartInput"
+                            android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:inputType="time" android:hint="10:00" />
+                    </LinearLayout>
+                    <Space android:layout_width="12dp" android:layout_height="wrap_content" />
+                    <LinearLayout
+                        android:layout_width="0dp" android:layout_weight="1"
+                        android:layout_height="wrap_content" android:orientation="vertical">
+                        <TextView
+                            android:layout_width="wrap_content" android:layout_height="wrap_content"
+                            android:text="End (HH:MM)" android:textStyle="bold" />
+                        <EditText
+                            android:id="@+id/whEndInput"
+                            android:layout_width="match_parent" android:layout_height="wrap_content"
+                            android:inputType="time" android:hint="18:00" />
+                    </LinearLayout>
+                </LinearLayout>
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
         <!-- SETUP -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="match_parent"
