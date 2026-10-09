@@ -100,9 +100,9 @@ class ForwardService : Service() {
                         delay(2000)    // 2-second gap between messages (anti-ban)
                     }
                     out.networkError -> {
-                        // Internet dropped mid-send. Do NOT count it, do NOT drop. Wait and retry.
+                        // Internet dropped / gateway down. Do NOT count it, do NOT drop. Wait and retry.
                         if (!notifiedOffline) {
-                            EventLog.add(ctx, "Connection lost — keeping ${QueueStore.size(ctx)} in queue, will retry")
+                            EventLog.add(ctx, "Can't send now (${out.info.take(80)}) — keeping ${QueueStore.size(ctx)} in queue, will retry")
                             notifiedOffline = true
                         }
                         delay(15000)

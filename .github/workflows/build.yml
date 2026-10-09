@@ -22,6 +22,20 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      # Optional: a fixed debug keystore (base64) so every build has the same signature and
+      # installs over the previous one. Without it each run gets a fresh key.
+      - name: Restore signing key
+        env:
+          DEBUG_KEYSTORE_B64: ${{ secrets.DEBUG_KEYSTORE_B64 }}
+        run: |
+          if [ -n "$DEBUG_KEYSTORE_B64" ]; then
+            mkdir -p ~/.android
+            echo "$DEBUG_KEYSTORE_B64" | base64 -d > ~/.android/debug.keystore
+            echo "Using fixed debug keystore"
+          else
+            echo "::warning::DEBUG_KEYSTORE_B64 not set - APK will not install over a previous build"
+          fi
+
       - name: Build debug APK
         env:
           GATEWAY_AUTH: ${{ secrets.GATEWAY_AUTH }}

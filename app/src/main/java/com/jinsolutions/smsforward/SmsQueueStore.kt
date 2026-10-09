@@ -54,6 +54,6 @@ object SmsQueueStore {
     } catch (e: Exception) { JSONArray() }
 
     private fun write(c: Context, arr: JSONArray) {
-        c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY, arr.toString()).apply()
+        c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString(KEY, arr.toString()).commit()
     }
 }

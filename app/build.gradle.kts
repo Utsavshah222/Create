@@ -11,8 +11,9 @@ android {
         applicationId = "com.jinsolutions.smsforward"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        // Each CI run gets a higher versionCode so updates install cleanly.
+        versionCode = System.getenv("GITHUB_RUN_NUMBER")?.toIntOrNull() ?: 1
+        versionName = "1.0.$versionCode"
 
         // Token is injected at build time from the GitHub Actions secret GATEWAY_AUTH.
         // It is never stored in source. Locally (no env var) it is just empty.

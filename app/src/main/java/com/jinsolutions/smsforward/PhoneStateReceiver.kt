@@ -40,11 +40,13 @@ class PhoneStateReceiver : BroadcastReceiver() {
             intent.getStringExtra(TelephonyManager.EXTRA_INCOMING_NUMBER)
         } catch (e: Exception) { null }
 
+        // Android 9+ delivers RINGING twice (with and without the number) — act only once.
+        val ar = context.getSharedPreferences("autoreject", Context.MODE_PRIVATE)
+        val now = System.currentTimeMillis()
+        if (now - ar.getLong("time", 0L) < 5_000) return
+
+        ar.edit().putLong("time", now).putString("number", number ?: "").commit()
         val rejected = rejectCall(context)
-        context.getSharedPreferences("autoreject", Context.MODE_PRIVATE).edit()
-            .putLong("time", System.currentTimeMillis())
-            .putString("number", number ?: "")
-            .apply()
         EventLog.add(context, "Outside working hours — auto-reject ${if (rejected) "done" else "attempted"} ${number ?: ""}")
     }
 
@@ -57,8 +59,7 @@ class PhoneStateReceiver : BroadcastReceiver() {
         val pending = goAsync()
         Thread {
             try {
-                Thread.sleep(1500)   // let the call-log row get written
-                process(context, call, wh)
+                synchronized(lock) { process(context, call, wh) }
             } catch (e: Exception) {
                 EventLog.add(context, "Call check error: ${e.message}")
             } finally {
@@ -68,12 +69,19 @@ class PhoneStateReceiver : BroadcastReceiver() {
     }
 
     private fun process(context: Context, call: CallConfig, wh: WorkingHours) {
-        val rec = CallUtils.latestCall(context) ?: return
-        val now = System.currentTimeMillis()
-        if (now - rec.date > 60_000) return
-
         val dp = context.getSharedPreferences("calldedup", Context.MODE_PRIVATE)
-        if (rec.date <= dp.getLong("lastDate", 0L)) return
+
+        // The call-log row is written a moment after IDLE; poll briefly for a new one.
+        var rec: CallUtils.CallRec? = null
+        for (attempt in 0 until 5) {
+            Thread.sleep(1500)
+            val r = CallUtils.latestCall(context)
+            if (r != null && r.date > dp.getLong("lastDate", 0L)) { rec = r; break }
+        }
+        if (rec == null) return
+        val now = System.currentTimeMillis()
+        // DATE is when the call started ringing; allow for long rings.
+        if (now - rec.date > 3 * 60_000) return
 
         val ar = context.getSharedPreferences("autoreject", Context.MODE_PRIVATE)
         val wasAutoRejected = wh.enabled && (now - ar.getLong("time", 0L) < 90_000)
@@ -104,7 +112,7 @@ class PhoneStateReceiver : BroadcastReceiver() {
             return
         }
 
-        dp.edit().putLong("lastDate", rec.date).apply()
+        dp.edit().putLong("lastDate", rec.date).commit()
 
         QueueStore.add(context, phone, call.message, Config.getCallDeviceId(context))
         MessageStore.add(context, "CALL", rec.number, call.message, "WhatsApp reply queued ($reason)")
@@ -117,6 +125,11 @@ class PhoneStateReceiver : BroadcastReceiver() {
         }
 
         ForwardService.start(context)
+    }
+
+    companion object {
+        // IDLE is also delivered twice on Android 9+; serialize so one call gets one reply.
+        private val lock = Any()
     }
 
     @Suppress("DEPRECATION")

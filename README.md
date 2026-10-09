@@ -55,8 +55,16 @@ This machine has no Android SDK, so the APK is built by **GitHub Actions** in th
 2. Open it → allow **Install unknown apps** for your file manager/browser when asked.
 3. Open the app, complete the 3 steps, turn **Enabled** on, tap **Save**.
 
-> It's a *debug-signed* APK — perfectly fine for sideloading onto your own phone. Any
-> future update must be built the same way (same signing) to install over it.
+> It's a *debug-signed* APK — perfectly fine for sideloading onto your own phone.
+> To let each new build install **over** the old one (keeping settings), every build must
+> use the same key. Create one once and store it as the `DEBUG_KEYSTORE_B64` secret:
+>
+> ```
+> keytool -genkeypair -keystore debug.keystore -alias androiddebugkey -storepass android -keypass android -keyalg RSA -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
+> base64 -w0 debug.keystore     # paste output into the DEBUG_KEYSTORE_B64 secret
+> ```
+>
+> Without that secret each build has a new key and you must uninstall before installing.
 
 ---
 
@@ -94,11 +102,16 @@ app/src/main/java/com/jinsolutions/smsforward/
     MainActivity.kt    setup screen (SIM, permissions, keywords, test, log)
     Config.kt          on-device settings; fixed values + build-time token
     SmsReceiver.kt     background SMS receiver + filter -> adds to queue
-    ForwardService.kt  always-on foreground service; drains queue 1 msg / 2s
-    QueueStore.kt      persistent FIFO send queue
+    PhoneStateReceiver.kt  missed/rejected call reply + working-hours auto-reject
+    CallUtils.kt       call-log lookup + number normalization
+    ForwardService.kt  always-on foreground service; drains both queues
+    QueueStore.kt      persistent FIFO WhatsApp send queue (1 msg / 2s)
+    SmsQueueStore.kt   persistent FIFO outgoing-SMS queue (replies from the SIM)
     Sender.kt          single HTTP POST to the gateway
+    SmsSender.kt       sends a real SMS from the chosen SIM
+    MessageStore.kt    recent-messages list shown in the app
     EventLog.kt        on-screen activity log
-    BootReceiver.kt    restarts the service after reboot
+    BootReceiver.kt    restarts the service after reboot / app update
     WatchdogWorker.kt  revives the service every ~15 min
 app/src/main/res/...   layout, strings, theme, launcher icon
 ```

@@ -16,6 +16,7 @@ object EventLog {
     private const val MAX = 60
     private const val MAX_AGE_MS = 48L * 60 * 60 * 1000
 
+    @Synchronized
     fun add(c: Context, msg: String) {
         val now = System.currentTimeMillis()
         val ts = SimpleDateFormat("MM-dd HH:mm:ss", Locale.US).format(Date(now))
@@ -33,6 +34,7 @@ object EventLog {
         return if (display.isEmpty()) "(no activity yet)" else display.joinToString("\n")
     }
 
+    @Synchronized
     fun clear(c: Context) {
         c.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().remove(KEY).apply()
     }

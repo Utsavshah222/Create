@@ -64,12 +64,13 @@ class MainActivity : AppCompatActivity() {
     private lateinit var whStartInput: EditText
     private lateinit var whEndInput: EditText
 
-    private val smsPerms = arrayOf(
+    // READ_PHONE_NUMBERS only exists on Android 8+; asking for it earlier is always "denied".
+    private val smsPerms = listOfNotNull(
         Manifest.permission.RECEIVE_SMS,
         Manifest.permission.READ_SMS,
         Manifest.permission.READ_PHONE_STATE,
-        Manifest.permission.READ_PHONE_NUMBERS
-    )
+        if (Build.VERSION.SDK_INT >= 26) Manifest.permission.READ_PHONE_NUMBERS else null
+    ).toTypedArray()
     private val callPerms = arrayOf(
         Manifest.permission.READ_CALL_LOG,
         Manifest.permission.READ_PHONE_STATE
@@ -147,7 +148,15 @@ class MainActivity : AppCompatActivity() {
 
         if (!hasSmsPerms() || !hasCallPerms()) requestPermissions() else populateSims()
 
-        if (Config.anyEnabled(this)) ForwardService.start(this)
+        if (Config.anyEnabled(this)) {
+            ForwardService.start(this)
+            scheduleWatchdog(ExistingPeriodicWorkPolicy.KEEP)
+        }
+    }
+
+    private fun scheduleWatchdog(policy: ExistingPeriodicWorkPolicy) {
+        val work = PeriodicWorkRequestBuilder<WatchdogWorker>(15, TimeUnit.MINUTES).build()
+        WorkManager.getInstance(this).enqueueUniquePeriodicWork("watchdog", policy, work)
     }
 
     override fun onResume() {
@@ -159,12 +168,13 @@ class MainActivity : AppCompatActivity() {
     private fun requestPermissions() {
         val perms = (smsPerms + callPerms).toMutableSet()
         perms.add(Manifest.permission.SEND_SMS)
-        perms.add(Manifest.permission.ANSWER_PHONE_CALLS)
+        if (Build.VERSION.SDK_INT >= 26) perms.add(Manifest.permission.ANSWER_PHONE_CALLS)
         if (Build.VERSION.SDK_INT >= 33) perms.add(Manifest.permission.POST_NOTIFICATIONS)
         permLauncher.launch(perms.toTypedArray())
     }
 
-    private fun hasAnswerCallsPerm() =
+    // Only Android 9+ rejects via TelecomManager (needs this permission); older uses reflection.
+    private fun hasAnswerCallsPerm() = Build.VERSION.SDK_INT < 28 ||
         ContextCompat.checkSelfPermission(this, Manifest.permission.ANSWER_PHONE_CALLS) ==
             PackageManager.PERMISSION_GRANTED
 
@@ -289,6 +299,20 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Grant the Phone (answer calls) permission to auto-reject.", Toast.LENGTH_LONG).show()
             requestPermissions(); return
         }
+        val savedWh = Config.loadWorkingHours(this)
+        val startMin = parseHHMM(whStartInput.text.toString(), -1)
+            .let { if (it < 0 && !autoRejectSwitch.isChecked) savedWh.startMin else it }
+        val endMin = parseHHMM(whEndInput.text.toString(), -1)
+            .let { if (it < 0 && !autoRejectSwitch.isChecked) savedWh.endMin else it }
+        if (startMin < 0 || endMin < 0) {
+            Toast.makeText(this, "Working hours must be HH:MM (24-hour), e.g. 10:00.", Toast.LENGTH_LONG).show()
+            return
+        }
+        if (autoRejectSwitch.isChecked && startMin == endMin) {
+            // Would mean "never inside hours" -> every call rejected.
+            Toast.makeText(this, "Working-hours start and end can't be the same.", Toast.LENGTH_LONG).show()
+            return
+        }
 
         val kws = keywordsInput.text.toString()
             .split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }
@@ -306,17 +330,13 @@ class MainActivity : AppCompatActivity() {
             callMissedCheck.isChecked, callRejectedCheck.isChecked, msg, cc, callSmsCheck.isChecked
         ))
 
-        val startMin = parseHHMM(whStartInput.text.toString(), 10 * 60)
-        val endMin = parseHHMM(whEndInput.text.toString(), 18 * 60)
         whStartInput.setText(fmtHHMM(startMin))
         whEndInput.setText(fmtHHMM(endMin))
         Config.saveWorkingHours(this, WorkingHours(autoRejectSwitch.isChecked, startMin, endMin))
 
         if (Config.anyEnabled(this)) {
             ForwardService.start(this)
-            val work = PeriodicWorkRequestBuilder<WatchdogWorker>(15, TimeUnit.MINUTES).build()
-            WorkManager.getInstance(this)
-                .enqueueUniquePeriodicWork("watchdog", ExistingPeriodicWorkPolicy.UPDATE, work)
+            scheduleWatchdog(ExistingPeriodicWorkPolicy.UPDATE)
         } else {
             ForwardService.stop(this)
             WorkManager.getInstance(this).cancelUniqueWork("watchdog")
