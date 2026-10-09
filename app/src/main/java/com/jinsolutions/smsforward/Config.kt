@@ -19,7 +19,8 @@ data class CallConfig(
     val onRejected: Boolean,    // cut / declined
     val message: String,
     val countryCode: String,
-    val sendSms: Boolean        // also send the same message as a real SMS from the SIM
+    val sendWhatsApp: Boolean,  // reply to the caller on WhatsApp (via the gateway)
+    val sendSms: Boolean        // reply to the caller with a real SMS from the SIM
 )
 
 /**
@@ -85,7 +86,8 @@ object Config {
         onRejected = p(c).getBoolean("call_rejected", true),
         message = p(c).getString("call_message", DEFAULT_CALL_MESSAGE) ?: DEFAULT_CALL_MESSAGE,
         countryCode = p(c).getString("call_cc", DEFAULT_COUNTRY_CODE) ?: DEFAULT_COUNTRY_CODE,
-        sendSms = p(c).getBoolean("call_sendsms", true)
+        sendWhatsApp = p(c).getBoolean("call_sendwa", true),
+        sendSms = p(c).getBoolean("call_sendsms", false)
     )
 
     fun saveCall(c: Context, cfg: CallConfig) {
@@ -97,6 +99,7 @@ object Config {
             .putBoolean("call_rejected", cfg.onRejected)
             .putString("call_message", cfg.message)
             .putString("call_cc", cfg.countryCode)
+            .putBoolean("call_sendwa", cfg.sendWhatsApp)
             .putBoolean("call_sendsms", cfg.sendSms)
             .apply()
     }

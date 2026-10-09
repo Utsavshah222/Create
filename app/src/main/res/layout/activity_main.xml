@@ -197,11 +197,22 @@
                     android:layout_height="wrap_content"
                     android:text="Rejected / I cut the call" />
 
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Reply to the caller by (tick one or both)"
+                    android:textStyle="bold"
+                    android:paddingTop="10dp" />
+                <CheckBox
+                    android:id="@+id/callWhatsAppCheck"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="WhatsApp message" />
                 <CheckBox
                     android:id="@+id/callSmsCheck"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Also send the same message as an SMS from your SIM (free). Untick for WhatsApp only." />
+                    android:text="SMS from your SIM (free, needs SMS-send permission)" />
 
                 <TextView
                     android:layout_width="match_parent"
@@ -290,7 +301,7 @@
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="Indian time (IST), 24-hour. Inside these hours calls ring normally. Outside, the call is rejected and the caller gets the same reply on WhatsApp (plus SMS only if ticked above)."
+                    android:text="Indian time (IST), 24-hour. Inside these hours calls ring normally. Outside, the call is rejected and the caller gets the same reply, by WhatsApp and/or SMS as ticked above."
                     android:textSize="11sp"
                     android:paddingBottom="6dp" />
 

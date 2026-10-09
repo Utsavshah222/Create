@@ -55,6 +55,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var callSimGroup: RadioGroup
     private lateinit var callMissedCheck: CheckBox
     private lateinit var callRejectedCheck: CheckBox
+    private lateinit var callWhatsAppCheck: CheckBox
     private lateinit var callSmsCheck: CheckBox
     private lateinit var callMessageInput: EditText
     private lateinit var callCcInput: EditText
@@ -76,10 +77,19 @@ class MainActivity : AppCompatActivity() {
         Manifest.permission.READ_PHONE_STATE
     )
 
+    // True while Save is waiting on a permission prompt; Save resumes once it returns.
+    private var pendingSave = false
+
     private val permLauncher =
         registerForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) {
             populateSims()
             updateStatus()
+            if (pendingSave) {
+                pendingSave = false
+                val missing = missingForSave()
+                if (missing.isEmpty()) save()
+                else showDenied(missing)
+            }
         }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -101,6 +111,7 @@ class MainActivity : AppCompatActivity() {
         callSimGroup = findViewById(R.id.callSimGroup)
         callMissedCheck = findViewById(R.id.callMissedCheck)
         callRejectedCheck = findViewById(R.id.callRejectedCheck)
+        callWhatsAppCheck = findViewById(R.id.callWhatsAppCheck)
         callSmsCheck = findViewById(R.id.callSmsCheck)
         callMessageInput = findViewById(R.id.callMessageInput)
         callCcInput = findViewById(R.id.callCcInput)
@@ -116,6 +127,7 @@ class MainActivity : AppCompatActivity() {
         callEnabledSwitch.isChecked = call.enabled
         callMissedCheck.isChecked = call.onMissed
         callRejectedCheck.isChecked = call.onRejected
+        callWhatsAppCheck.isChecked = call.sendWhatsApp
         callSmsCheck.isChecked = call.sendSms
         callMessageInput.setText(call.message)
         callCcInput.setText(call.countryCode)
@@ -146,7 +158,9 @@ class MainActivity : AppCompatActivity() {
             EventLog.clear(this); MessageStore.clear(this); refreshActivity()
         }
 
-        if (!hasSmsPerms() || !hasCallPerms()) requestPermissions() else populateSims()
+        // Ask only for what the currently enabled features need (plus SIM list access).
+        val startup = (neededPerms() + Manifest.permission.READ_PHONE_STATE).filterNot { granted(it) }
+        if (startup.isNotEmpty()) permLauncher.launch(startup.distinct().toTypedArray()) else populateSims()
 
         if (Config.anyEnabled(this)) {
             ForwardService.start(this)
@@ -165,6 +179,41 @@ class MainActivity : AppCompatActivity() {
         refreshActivity()
     }
 
+    private fun granted(p: String) =
+        ContextCompat.checkSelfPermission(this, p) == PackageManager.PERMISSION_GRANTED
+
+    /** Permissions required by what is switched on in the form right now — nothing extra. */
+    private fun neededPerms(): List<String> {
+        val need = LinkedHashSet<String>()
+        val smsOn = if (::smsEnabledSwitch.isInitialized) smsEnabledSwitch.isChecked else Config.loadSms(this).enabled
+        val call = Config.loadCall(this)
+        val callOn = if (::callEnabledSwitch.isInitialized) callEnabledSwitch.isChecked else call.enabled
+        val rejectOn = if (::autoRejectSwitch.isInitialized) autoRejectSwitch.isChecked else Config.loadWorkingHours(this).enabled
+        val replySms = if (::callSmsCheck.isInitialized) callSmsCheck.isChecked else call.sendSms
+
+        if (smsOn) { need.add(Manifest.permission.RECEIVE_SMS); need.add(Manifest.permission.READ_PHONE_STATE) }
+        if (callOn || rejectOn) { need.add(Manifest.permission.READ_CALL_LOG); need.add(Manifest.permission.READ_PHONE_STATE) }
+        if (rejectOn && Build.VERSION.SDK_INT >= 28) need.add(Manifest.permission.ANSWER_PHONE_CALLS)
+        if ((callOn || rejectOn) && replySms) need.add(Manifest.permission.SEND_SMS)
+        if (need.isNotEmpty() && Build.VERSION.SDK_INT >= 33) need.add(Manifest.permission.POST_NOTIFICATIONS)
+        return need.toList()
+    }
+
+    /** Needed permissions still missing (notifications are nice-to-have, never block Save). */
+    private fun missingForSave() = neededPerms()
+        .filter { it != Manifest.permission.POST_NOTIFICATIONS }
+        .filterNot { granted(it) }
+
+    private fun showDenied(missing: List<String>) {
+        val names = missing.joinToString(", ") { it.substringAfterLast('.') }
+        Toast.makeText(this, "Not saved — permission denied: $names. Allow it in Settings > Apps > " +
+            "this app > Permissions, or turn that option off.", Toast.LENGTH_LONG).show()
+        try {
+            startActivity(Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName")))
+        } catch (_: Exception) {}
+    }
+
+    /** "Grant" button: asks for everything the app can use, so all options are ready. */
     private fun requestPermissions() {
         val perms = (smsPerms + callPerms).toMutableSet()
         perms.add(Manifest.permission.SEND_SMS)
@@ -190,9 +239,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun fmtHHMM(min: Int): String = "%02d:%02d".format(min / 60, min % 60)
 
-    private fun hasSmsPerms() = smsPerms.all {
-        ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
-    }
+    // Essentials only: receiving SMS + knowing which SIM it came in on.
+    private fun hasSmsPerms() =
+        granted(Manifest.permission.RECEIVE_SMS) && granted(Manifest.permission.READ_PHONE_STATE)
 
     private fun hasCallPerms() = callPerms.all {
         ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
@@ -279,25 +328,13 @@ class MainActivity : AppCompatActivity() {
         val smsOn = smsEnabledSwitch.isChecked
         val callOn = callEnabledSwitch.isChecked
 
-        if (smsOn && !hasSmsPerms()) {
-            Toast.makeText(this, "Grant SMS permissions to enable SMS forwarding.", Toast.LENGTH_LONG).show()
-            requestPermissions(); return
-        }
-        if (callOn && !hasCallPerms()) {
-            Toast.makeText(this, "Grant Call-log permission to enable missed-call reply.", Toast.LENGTH_LONG).show()
-            requestPermissions(); return
-        }
         if (callOn && !callMissedCheck.isChecked && !callRejectedCheck.isChecked) {
             Toast.makeText(this, "Pick at least one call condition (missed / rejected).", Toast.LENGTH_LONG).show()
             return
         }
-        if ((callOn || autoRejectSwitch.isChecked) && callSmsCheck.isChecked && !SmsSender.hasPermission(this)) {
-            Toast.makeText(this, "Grant SMS-send permission to also text the caller.", Toast.LENGTH_LONG).show()
-            requestPermissions(); return
-        }
-        if (autoRejectSwitch.isChecked && !hasAnswerCallsPerm()) {
-            Toast.makeText(this, "Grant the Phone (answer calls) permission to auto-reject.", Toast.LENGTH_LONG).show()
-            requestPermissions(); return
+        if ((callOn || autoRejectSwitch.isChecked) && !callWhatsAppCheck.isChecked && !callSmsCheck.isChecked) {
+            Toast.makeText(this, "Pick how to reply: WhatsApp, SMS, or both.", Toast.LENGTH_LONG).show()
+            return
         }
         val savedWh = Config.loadWorkingHours(this)
         val startMin = parseHHMM(whStartInput.text.toString(), -1)
@@ -314,6 +351,15 @@ class MainActivity : AppCompatActivity() {
             return
         }
 
+        // Ask only for permissions the chosen options need; Save continues after the prompt.
+        val missing = missingForSave()
+        if (missing.isNotEmpty()) {
+            pendingSave = true
+            val ask = (missing + neededPerms().filter { it == Manifest.permission.POST_NOTIFICATIONS && !granted(it) })
+            permLauncher.launch(ask.distinct().toTypedArray())
+            return
+        }
+
         val kws = keywordsInput.text.toString()
             .split(",").map { it.trim().lowercase() }.filter { it.isNotEmpty() }
             .ifEmpty { Config.DEFAULT_KEYWORDS }
@@ -327,7 +373,8 @@ class MainActivity : AppCompatActivity() {
         callMessageInput.setText(msg)
         Config.saveCall(this, CallConfig(
             callOn, selectedSubId(callSimGroup), selectedLabel(callSimGroup),
-            callMissedCheck.isChecked, callRejectedCheck.isChecked, msg, cc, callSmsCheck.isChecked
+            callMissedCheck.isChecked, callRejectedCheck.isChecked, msg, cc,
+            callWhatsAppCheck.isChecked, callSmsCheck.isChecked
         ))
 
         whStartInput.setText(fmtHHMM(startMin))
@@ -373,7 +420,10 @@ class MainActivity : AppCompatActivity() {
             append("Call: ${if (call.enabled) "● ON" else "○ off"}  (${if (hasCallPerms()) "perms ok" else "PERMS MISSING"})\n")
             append("Auto-reject: ${if (wh.enabled) "● ON ${fmtHHMM(wh.startMin)}-${fmtHHMM(wh.endMin)} IST" else "○ off"}  (${if (hasAnswerCallsPerm()) "perms ok" else "PERMS MISSING"})\n")
             append("Token built in: ${if (Config.AUTH.isBlank()) "NO — add GATEWAY_AUTH secret" else "yes"}\n")
-            append("SMS-send perm: ${if (SmsSender.hasPermission(this@MainActivity)) "granted" else "not granted"}\n")
+            val via = listOfNotNull(if (call.sendWhatsApp) "WhatsApp" else null, if (call.sendSms) "SMS" else null)
+            append("Call reply via: ${via.joinToString(" + ").ifEmpty { "none" }}")
+            if (call.sendSms) append("  (SMS-send ${if (SmsSender.hasPermission(this@MainActivity)) "ok" else "PERM MISSING"})")
+            append("\n")
             append("WhatsApp queue: ${QueueStore.size(this@MainActivity)} · SMS queue: ${SmsQueueStore.size(this@MainActivity)}")
         }
     }
