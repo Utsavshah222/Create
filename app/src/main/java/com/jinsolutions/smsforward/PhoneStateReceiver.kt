@@ -17,7 +17,7 @@ import java.util.TimeZone
  * Handles two things off incoming calls:
  *  1) Working hours: outside the hours you set (Indian time), auto-reject the call.
  *  2) Reply: when a call was auto-rejected, missed, or rejected (per your settings), queue a
- *     WhatsApp reply (and an SMS from the SIM) to the caller.
+ *     WhatsApp reply (plus an SMS from the SIM, if that option is ticked) to the caller.
  * Both are additive — if a feature is off, its part does nothing.
  */
 class PhoneStateReceiver : BroadcastReceiver() {
@@ -118,8 +118,8 @@ class PhoneStateReceiver : BroadcastReceiver() {
         MessageStore.add(context, "CALL", rec.number, call.message, "WhatsApp reply queued ($reason)")
         EventLog.add(context, "CALL ${rec.number} ($reason) -> queued WhatsApp reply to $phone")
 
-        // SMS: auto-rejected calls always get one; normal missed/rejected respect the checkbox.
-        if (wasAutoRejected || call.sendSms) {
+        // SMS is optional for every case (missed, rejected, auto-rejected) — only if ticked.
+        if (call.sendSms) {
             SmsQueueStore.add(context, rec.number, call.message, call.subId)
             EventLog.add(context, "CALL ${rec.number} -> queued SMS from SIM")
         }

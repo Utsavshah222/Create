@@ -291,7 +291,7 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Pick at least one call condition (missed / rejected).", Toast.LENGTH_LONG).show()
             return
         }
-        if (callOn && callSmsCheck.isChecked && !SmsSender.hasPermission(this)) {
+        if ((callOn || autoRejectSwitch.isChecked) && callSmsCheck.isChecked && !SmsSender.hasPermission(this)) {
             Toast.makeText(this, "Grant SMS-send permission to also text the caller.", Toast.LENGTH_LONG).show()
             requestPermissions(); return
         }
